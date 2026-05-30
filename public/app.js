@@ -67,6 +67,19 @@ const TRANSLATIONS = {
     'toast.copied': '📋 Copied to clipboard!',
     'toast.timesUp': '⏰ Time\'s up!',
     'toast.error': 'Error: ',
+    'rec.title': '🎙 Record & Score',
+    'rec.start': 'Start Recording',
+    'rec.stop': 'Stop Recording',
+    'rec.analyze': 'Analyze Speech',
+    'rec.ph': 'Your speech will appear here as you speak...',
+    'rec.noSupport': 'Speech recognition not supported. Please use Chrome or Edge.',
+    'rec.noSpeech': 'No speech detected. Please try again.',
+    'score.relevance': 'Relevance',
+    'score.structure': 'Structure',
+    'score.fluency': 'Fluency',
+    'score.strengths': 'Strengths',
+    'score.improve': 'Improvements',
+    'score.words': 'words',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -131,6 +144,19 @@ const TRANSLATIONS = {
     'toast.copied': '📋 Đã sao chép!',
     'toast.timesUp': '⏰ Hết giờ!',
     'toast.error': 'Lỗi: ',
+    'rec.title': '🎙 Ghi Âm & Chấm Điểm',
+    'rec.start': 'Bắt Đầu Ghi Âm',
+    'rec.stop': 'Dừng Ghi Âm',
+    'rec.analyze': 'Phân Tích Bài Nói',
+    'rec.ph': 'Lời nói của bạn sẽ hiển thị tại đây...',
+    'rec.noSupport': 'Trình duyệt không hỗ trợ ghi âm. Vui lòng dùng Chrome hoặc Edge.',
+    'rec.noSpeech': 'Không nhận được giọng nói. Vui lòng thử lại.',
+    'score.relevance': 'Liên Quan',
+    'score.structure': 'Cấu Trúc',
+    'score.fluency': 'Lưu Loát',
+    'score.strengths': 'Điểm Mạnh',
+    'score.improve': 'Cần Cải Thiện',
+    'score.words': 'từ',
   }
 };
 
@@ -370,6 +396,160 @@ async function copyText(text) {
   }
 }
 
+// ---- Speech Recording ----
+const rec = {
+  recognition: null,
+  running: false,
+  tabId: null,
+  finalText: '',
+};
+
+function getSpeechLang() { return state.lang === 'vi' ? 'vi-VN' : 'en-US'; }
+
+function setupRecording(tabId) {
+  const recordBtn  = $(`${tabId}RecordBtn`);
+  const analyzeBtn = $(`${tabId}AnalyzeBtn`);
+  const transcript = $(`${tabId}Transcript`);
+
+  // Set placeholder via CSS data attribute
+  transcript.setAttribute('data-ph', t('rec.ph'));
+
+  recordBtn.addEventListener('click', () => {
+    if (rec.running && rec.tabId === tabId) {
+      stopRecording();
+    } else {
+      startRecording(tabId);
+    }
+  });
+
+  analyzeBtn.addEventListener('click', () => analyzeSpeech(tabId));
+}
+
+function startRecording(tabId) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast(t('rec.noSupport'), 'err'); return; }
+
+  // Stop any existing recording first
+  if (rec.running) stopRecording();
+
+  const transcript = $(`${tabId}Transcript`);
+  const recordBtn  = $(`${tabId}RecordBtn`);
+  const analyzeBtn = $(`${tabId}AnalyzeBtn`);
+
+  rec.finalText = '';
+  transcript.textContent = '';
+  transcript.classList.add('active');
+  analyzeBtn.style.display = 'none';
+  $(`${tabId}ScoreCard`).style.display = 'none';
+
+  rec.recognition = new SR();
+  rec.recognition.continuous = true;
+  rec.recognition.interimResults = true;
+  rec.recognition.lang = getSpeechLang();
+  rec.tabId = tabId;
+  rec.running = true;
+
+  rec.recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) rec.finalText += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    transcript.textContent = rec.finalText + interim;
+    transcript.scrollTop = transcript.scrollHeight;
+  };
+
+  rec.recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') showToast(t('rec.noSpeech'), 'err');
+  };
+
+  // Auto-restart to avoid 1-min browser timeout
+  rec.recognition.onend = () => {
+    if (rec.running && rec.tabId === tabId) rec.recognition.start();
+  };
+
+  rec.recognition.start();
+  recordBtn.classList.add('recording');
+  recordBtn.querySelector('[data-i18n]').textContent = t('rec.stop');
+}
+
+function stopRecording() {
+  if (!rec.running) return;
+  rec.running = false;
+  if (rec.recognition) { rec.recognition.onend = null; rec.recognition.stop(); }
+
+  const tabId = rec.tabId;
+  const recordBtn  = $(`${tabId}RecordBtn`);
+  const analyzeBtn = $(`${tabId}AnalyzeBtn`);
+  const transcript = $(`${tabId}Transcript`);
+
+  recordBtn.classList.remove('recording');
+  recordBtn.querySelector('[data-i18n]').textContent = t('rec.start');
+  transcript.classList.remove('active');
+
+  if (rec.finalText.trim().length > 5) {
+    analyzeBtn.style.display = 'flex';
+  }
+}
+
+async function analyzeSpeech(tabId) {
+  const transcript = rec.finalText.trim();
+  if (!transcript) { showToast(t('rec.noSpeech'), 'err'); return; }
+
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab };
+  const context = contextMap[tabId] || '';
+
+  const prompt = state.lang === 'vi'
+    ? `Đây là bài nói của học viên.${context ? `\nChủ đề/câu hỏi: "${context}"` : ''}\nBài nói: "${transcript}"\n\nHãy chấm điểm và trả về JSON hợp lệ (không markdown, không giải thích thêm) với đúng các key sau:\n{"overall":8,"relevance":7,"structure":8,"fluency":9,"wordCount":50,"feedback":"nhận xét ngắn 2-3 câu bằng tiếng Việt","strengths":["điểm mạnh 1","điểm mạnh 2"],"improvements":["cần cải thiện 1"]}\nChấm 1-10. Khuyến khích nhưng trung thực.`
+    : `Student's speech:${context ? `\nTopic: "${context}"` : ''}\nTranscript: "${transcript}"\n\nScore this speech. Return valid JSON only (no markdown, no extra text):\n{"overall":8,"relevance":7,"structure":8,"fluency":9,"wordCount":50,"feedback":"2-3 encouraging sentences","strengths":["strength 1","strength 2"],"improvements":["area 1"]}\nScore 1-10. Be honest but encouraging.`;
+
+  const btn = $(`${tabId}AnalyzeBtn`);
+  btn.disabled = true;
+  const result = await callAPI(prompt);
+  btn.disabled = false;
+  if (!result) return;
+
+  try {
+    const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
+    renderScoreCard(tabId, score);
+  } catch {
+    showToast(t('toast.error') + 'Could not parse score', 'err');
+  }
+}
+
+function renderScoreCard(tabId, s) {
+  const card = $(`${tabId}ScoreCard`);
+  const pct  = (s.overall / 10) * 100;
+  const bar  = (val) => {
+    const col = val >= 8 ? '#20C997' : val >= 6 ? '#FD7E14' : '#FA5252';
+    return `<div class="s-bar"><div style="width:${val*10}%;background:${col}"></div></div>`;
+  };
+
+  card.innerHTML = `
+    <div class="score-top">
+      <div class="score-ring" style="--p:${pct}">
+        <div class="score-inner">
+          <span class="score-num">${s.overall}</span>
+          <span class="score-denom">/10</span>
+        </div>
+      </div>
+      <div class="score-bars">
+        <div class="s-bar-row"><span>${t('score.relevance')}</span>${bar(s.relevance)}<span>${s.relevance}</span></div>
+        <div class="s-bar-row"><span>${t('score.structure')}</span>${bar(s.structure)}<span>${s.structure}</span></div>
+        <div class="s-bar-row"><span>${t('score.fluency')}</span>${bar(s.fluency)}<span>${s.fluency}</span></div>
+      </div>
+    </div>
+    <p class="score-feedback">${escHtml(s.feedback || '')}</p>
+    <div class="score-lists">
+      <div><strong>✅ ${t('score.strengths')}</strong><ul>${(s.strengths||[]).map(x=>`<li>${escHtml(x)}</li>`).join('')}</ul></div>
+      <div><strong>📈 ${t('score.improve')}</strong><ul>${(s.improvements||[]).map(x=>`<li>${escHtml(x)}</li>`).join('')}</ul></div>
+    </div>
+    ${s.wordCount ? `<p class="score-words">📝 ${s.wordCount} ${t('score.words')}</p>` : ''}
+  `;
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 // ---- Settings Modal ----
 function openSettings() {
   $('apiKeyInput').value = state.apiKey;
@@ -412,6 +592,11 @@ function init() {
   setupTimer('gen', 'genTimerDisplay', 'genTimerStart', 'genTimerReset');
   setupTimer('int', 'intTimerDisplay', 'intTimerStart', 'intTimerReset');
   setupTimer('voc', 'vocTimerDisplay', 'vocTimerStart', 'vocTimerReset');
+
+  // Recording
+  setupRecording('gen');
+  setupRecording('int');
+  setupRecording('voc');
 
   // Generators
   $('btnGenerateTopic').addEventListener('click', generateTopic);
