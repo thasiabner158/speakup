@@ -67,19 +67,25 @@ const TRANSLATIONS = {
     'toast.copied': '📋 Copied to clipboard!',
     'toast.timesUp': '⏰ Time\'s up!',
     'toast.error': 'Error: ',
-    'rec.title': '🎙 Record & Score',
+    'rec.title': '🎙 IELTS Speaking Practice',
     'rec.start': 'Start Recording',
     'rec.stop': 'Stop Recording',
+    'rec.submit': 'Submit for IELTS Feedback',
     'rec.analyze': 'Analyze Speech',
     'rec.ph': 'Your speech will appear here as you speak...',
     'rec.noSupport': 'Speech recognition not supported. Please use Chrome or Edge.',
     'rec.noSpeech': 'No speech detected. Please try again.',
-    'score.relevance': 'Relevance',
-    'score.structure': 'Structure',
-    'score.fluency': 'Fluency',
-    'score.strengths': 'Strengths',
-    'score.improve': 'Improvements',
-    'score.words': 'words',
+    'sample.btn': '✨ Sample Answer',
+    'sample.title': 'Sample Answer',
+    'sample.loading': 'Generating sample answer...',
+    'sample.keyphrases': 'Key Phrases',
+    'ielts.overall': 'Overall Band Score',
+    'ielts.fc': 'Fluency & Coherence',
+    'ielts.gra': 'Grammatical Range & Accuracy',
+    'ielts.lr': 'Lexical Resource',
+    'ielts.p': 'Pronunciation',
+    'ielts.tips': 'Key Improvements',
+    'ielts.words': 'words spoken',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -144,19 +150,25 @@ const TRANSLATIONS = {
     'toast.copied': '📋 Đã sao chép!',
     'toast.timesUp': '⏰ Hết giờ!',
     'toast.error': 'Lỗi: ',
-    'rec.title': '🎙 Ghi Âm & Chấm Điểm',
+    'rec.title': '🎙 Luyện IELTS Speaking',
     'rec.start': 'Bắt Đầu Ghi Âm',
     'rec.stop': 'Dừng Ghi Âm',
+    'rec.submit': 'Nộp Bài & Nhận Phản Hồi IELTS',
     'rec.analyze': 'Phân Tích Bài Nói',
     'rec.ph': 'Lời nói của bạn sẽ hiển thị tại đây...',
     'rec.noSupport': 'Trình duyệt không hỗ trợ ghi âm. Vui lòng dùng Chrome hoặc Edge.',
     'rec.noSpeech': 'Không nhận được giọng nói. Vui lòng thử lại.',
-    'score.relevance': 'Liên Quan',
-    'score.structure': 'Cấu Trúc',
-    'score.fluency': 'Lưu Loát',
-    'score.strengths': 'Điểm Mạnh',
-    'score.improve': 'Cần Cải Thiện',
-    'score.words': 'từ',
+    'sample.btn': '✨ Xem Bài Mẫu',
+    'sample.title': 'Bài Nói Mẫu',
+    'sample.loading': 'Đang tạo bài mẫu...',
+    'sample.keyphrases': 'Cụm Từ Hay',
+    'ielts.overall': 'Band Score Tổng',
+    'ielts.fc': 'Fluency & Coherence',
+    'ielts.gra': 'Grammatical Range & Accuracy',
+    'ielts.lr': 'Lexical Resource',
+    'ielts.p': 'Pronunciation',
+    'ielts.tips': 'Cần Cải Thiện',
+    'ielts.words': 'từ đã nói',
   }
 };
 
@@ -332,6 +344,7 @@ async function generateTopic() {
   state.lastResults.topic = result.trim();
   $('topicResult').innerHTML = `<p class="result-text">${escHtml(state.lastResults.topic)}</p>`;
   $('topicActions').style.display = 'flex';
+  resetSamplePanel('gen');
 }
 
 async function generateInterview() {
@@ -345,6 +358,7 @@ async function generateInterview() {
   state.lastResults.interview = result.trim();
   $('interviewResult').innerHTML = `<p class="result-text">${escHtml(state.lastResults.interview)}</p>`;
   $('interviewActions').style.display = 'flex';
+  resetSamplePanel('int');
 }
 
 async function generateVocab() {
@@ -379,10 +393,12 @@ async function generateVocab() {
         </div>`;
     }
     $('vocabActions').style.display = 'flex';
+    resetSamplePanel('voc');
   } catch {
     state.lastResults.vocab = raw.trim();
     $('vocabResult').innerHTML = `<p class="result-text">${escHtml(raw.trim())}</p>`;
     $('vocabActions').style.display = 'flex';
+    resetSamplePanel('voc');
   }
 }
 
@@ -498,10 +514,11 @@ async function analyzeSpeech(tabId) {
 
   const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab };
   const context = contextMap[tabId] || '';
+  const wordCount = transcript.trim().split(/\s+/).length;
 
   const prompt = state.lang === 'vi'
-    ? `Đây là bài nói của học viên.${context ? `\nChủ đề/câu hỏi: "${context}"` : ''}\nBài nói: "${transcript}"\n\nHãy chấm điểm và trả về JSON hợp lệ (không markdown, không giải thích thêm) với đúng các key sau:\n{"overall":8,"relevance":7,"structure":8,"fluency":9,"wordCount":50,"feedback":"nhận xét ngắn 2-3 câu bằng tiếng Việt","strengths":["điểm mạnh 1","điểm mạnh 2"],"improvements":["cần cải thiện 1"]}\nChấm 1-10. Khuyến khích nhưng trung thực.`
-    : `Student's speech:${context ? `\nTopic: "${context}"` : ''}\nTranscript: "${transcript}"\n\nScore this speech. Return valid JSON only (no markdown, no extra text):\n{"overall":8,"relevance":7,"structure":8,"fluency":9,"wordCount":50,"feedback":"2-3 encouraging sentences","strengths":["strength 1","strength 2"],"improvements":["area 1"]}\nScore 1-10. Be honest but encouraging.`;
+    ? `Bạn là giám khảo IELTS. Đánh giá bài nói sau theo 4 tiêu chí IELTS Speaking.${context ? `\nChủ đề: "${context}"` : ''}\nBài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC bằng tiếng Việt","tips":["gợi ý 1"]},"GRA":{"band":6,"feedback":"nhận xét GRA","tips":["gợi ý 1"]},"LR":{"band":6.5,"feedback":"nhận xét LR","tips":["gợi ý 1"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý 1"]},"overallTips":["cải thiện chính 1","cải thiện chính 2"]}\nBand theo thang IELTS 1-9 (có thể dùng 0.5). Khuyến khích nhưng trung thực.`
+    : `You are an IELTS examiner. Evaluate this speaking response on the 4 IELTS Speaking criteria.${context ? `\nTopic: "${context}"` : ''}\nResponse (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"specific FC feedback","tips":["tip 1"]},"GRA":{"band":6,"feedback":"specific GRA feedback","tips":["tip 1"]},"LR":{"band":6.5,"feedback":"specific LR feedback","tips":["tip 1"]},"P":{"band":6,"feedback":"specific P feedback","tips":["tip 1"]},"overallTips":["key improvement 1","key improvement 2"]}\nBands are IELTS scale 1-9 (0.5 increments allowed). Be specific, encouraging, and honest.`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -511,43 +528,134 @@ async function analyzeSpeech(tabId) {
 
   try {
     const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
-    renderScoreCard(tabId, score);
+    score.wordCount = wordCount;
+    renderIeltsCard(tabId, score);
   } catch {
-    showToast(t('toast.error') + 'Could not parse score', 'err');
+    showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
   }
 }
 
-function renderScoreCard(tabId, s) {
+function bandColor(b) {
+  if (b >= 7.5) return '#059669';
+  if (b >= 6)   return '#2563EB';
+  if (b >= 5)   return '#D97706';
+  return '#DC2626';
+}
+
+function renderIeltsCard(tabId, s) {
   const card = $(`${tabId}ScoreCard`);
-  const pct  = (s.overall / 10) * 100;
-  const bar  = (val) => {
-    const col = val >= 8 ? '#20C997' : val >= 6 ? '#FD7E14' : '#FA5252';
-    return `<div class="s-bar"><div style="width:${val*10}%;background:${col}"></div></div>`;
+  const overall = s.overall || 0;
+  const desc = overall >= 8 ? 'Expert / Very Good' : overall >= 7 ? 'Good' : overall >= 6 ? 'Competent' : overall >= 5 ? 'Modest' : 'Limited';
+
+  const criterion = (key, label) => {
+    const c = s[key] || {};
+    const b = c.band || 0;
+    const col = bandColor(b);
+    const tips = (c.tips || []).map(tip => `<li>${escHtml(tip)}</li>`).join('');
+    return `
+      <div class="ielts-criterion">
+        <div class="ic-header">
+          <span class="ic-name">${label}</span>
+          <span class="ic-band" style="color:${col}">${b}</span>
+        </div>
+        <div class="ic-bar"><div style="width:${(b/9)*100}%;background:${col}"></div></div>
+        <p class="ic-feedback">${escHtml(c.feedback || '')}</p>
+        ${tips ? `<ul class="ic-tips">${tips}</ul>` : ''}
+      </div>`;
   };
 
+  const overallTips = (s.overallTips || []).map(x => `<li>${escHtml(x)}</li>`).join('');
+
   card.innerHTML = `
-    <div class="score-top">
-      <div class="score-ring" style="--p:${pct}">
-        <div class="score-inner">
-          <span class="score-num">${s.overall}</span>
-          <span class="score-denom">/10</span>
-        </div>
+    <div class="ielts-overall">
+      <div>
+        <div class="ielts-band-big" style="color:#fff">${overall}</div>
+        <div class="ielts-band-label">${t('ielts.overall')}</div>
       </div>
-      <div class="score-bars">
-        <div class="s-bar-row"><span>${t('score.relevance')}</span>${bar(s.relevance)}<span>${s.relevance}</span></div>
-        <div class="s-bar-row"><span>${t('score.structure')}</span>${bar(s.structure)}<span>${s.structure}</span></div>
-        <div class="s-bar-row"><span>${t('score.fluency')}</span>${bar(s.fluency)}<span>${s.fluency}</span></div>
+      <div class="ielts-band-desc">
+        <strong>${desc}</strong><br>
+        ${s.wordCount ? `📝 ${s.wordCount} ${t('ielts.words')}` : ''}
       </div>
     </div>
-    <p class="score-feedback">${escHtml(s.feedback || '')}</p>
-    <div class="score-lists">
-      <div><strong>✅ ${t('score.strengths')}</strong><ul>${(s.strengths||[]).map(x=>`<li>${escHtml(x)}</li>`).join('')}</ul></div>
-      <div><strong>📈 ${t('score.improve')}</strong><ul>${(s.improvements||[]).map(x=>`<li>${escHtml(x)}</li>`).join('')}</ul></div>
+    <div class="ielts-grid">
+      ${criterion('FC',  t('ielts.fc'))}
+      ${criterion('GRA', t('ielts.gra'))}
+      ${criterion('LR',  t('ielts.lr'))}
+      ${criterion('P',   t('ielts.p'))}
     </div>
-    ${s.wordCount ? `<p class="score-words">📝 ${s.wordCount} ${t('score.words')}</p>` : ''}
+    ${overallTips ? `
+    <div class="ielts-footer">
+      <div class="ielts-footer-title">📈 ${t('ielts.tips')}</div>
+      <ul class="ielts-tips-list">${overallTips}</ul>
+    </div>` : ''}
   `;
   card.style.display = 'block';
   card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ---- Sample Answer ----
+function resetSamplePanel(tabId) {
+  $(`${tabId}SampleWrap`).style.display = 'none';
+  $(`${tabId}ShowSample`).classList.remove('active');
+  $(`${tabId}SampleCard`).innerHTML = '';
+}
+
+async function toggleSampleAnswer(tabId) {
+  const wrap = $(`${tabId}SampleWrap`);
+  const btn  = $(`${tabId}ShowSample`);
+  const card = $(`${tabId}SampleCard`);
+
+  if (wrap.style.display !== 'none') {
+    wrap.style.display = 'none';
+    btn.classList.remove('active');
+    return;
+  }
+
+  if (card.innerHTML) {
+    wrap.style.display = 'block';
+    btn.classList.add('active');
+    return;
+  }
+
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab };
+  const context = contextMap[tabId] || '';
+  if (!context) { showToast('Generate a topic first!', 'err'); return; }
+
+  const frameworks = ['PREP', 'STAR', 'PPF'];
+  const fw = frameworks[Math.floor(Math.random() * frameworks.length)];
+
+  const prompt = state.lang === 'vi'
+    ? `Viết một bài nói mẫu IELTS Speaking khoảng 150 từ cho chủ đề/câu hỏi sau, theo cấu trúc ${fw}:\n"${context}"\n\nTrả về JSON hợp lệ (không markdown):\n{"framework":"${fw}","answer":"bài nói mẫu hoàn chỉnh bằng tiếng Anh, khoảng 150 từ","wordCount":150,"keyPhrases":["cụm từ hay 1","cụm từ hay 2","cụm từ hay 3"]}`
+    : `Write a model IELTS Speaking answer of around 150 words for this topic/question using the ${fw} framework:\n"${context}"\n\nReturn valid JSON only (no markdown):\n{"framework":"${fw}","answer":"full model answer ~150 words","wordCount":150,"keyPhrases":["useful phrase 1","useful phrase 2","useful phrase 3"]}`;
+
+  btn.textContent = t('sample.loading');
+  btn.disabled = true;
+  const result = await callAPI(prompt);
+  btn.disabled = false;
+  btn.textContent = t('sample.btn');
+
+  if (!result) return;
+
+  try {
+    const data = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
+    const phrases = (data.keyPhrases || []).map(p => `<span class="sample-phrase">${escHtml(p)}</span>`).join('');
+    card.innerHTML = `
+      <div class="sample-header">
+        <span class="sample-title">✨ ${t('sample.title')}</span>
+        <span class="sample-fw-badge">${escHtml(data.framework || fw)}</span>
+      </div>
+      <div class="sample-text">${escHtml(data.answer || '')}</div>
+      ${phrases ? `<div><div style="font-size:.75rem;font-weight:600;color:#92400E;margin-bottom:5px">${t('sample.keyphrases')}</div><div class="sample-key-phrases">${phrases}</div></div>` : ''}
+      <div class="sample-footer">
+        <span class="sample-wc">📝 ~${data.wordCount || 150} words</span>
+      </div>
+    `;
+    wrap.style.display = 'block';
+    btn.classList.add('active');
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch {
+    showToast(t('toast.error') + 'Could not generate sample', 'err');
+  }
 }
 
 // ---- Settings Modal ----
@@ -597,6 +705,11 @@ function init() {
   setupRecording('gen');
   setupRecording('int');
   setupRecording('voc');
+
+  // Sample answer buttons
+  $('genShowSample').addEventListener('click', () => toggleSampleAnswer('gen'));
+  $('intShowSample').addEventListener('click', () => toggleSampleAnswer('int'));
+  $('vocShowSample').addEventListener('click', () => toggleSampleAnswer('voc'));
 
   // Generators
   $('btnGenerateTopic').addEventListener('click', generateTopic);
