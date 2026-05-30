@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeakUp - Speech Topic Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">🎤</span>
+          <span class="logo-text">SpeakUp</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon lang-btn" id="langBtn">
+            <span id="langLabel">🇬🇧 EN</span>
+          </button>
+          <button class="btn-icon" id="settingsBtn" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span data-i18n="header.settings">Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="container">
+
+      <!-- Tabs -->
+      <nav class="tabs">
+        <button class="tab active" data-tab="generator" data-i18n="tab.generator">Topic Generator</button>
+        <button class="tab" data-tab="interview" data-i18n="tab.interview">Interview Prep</button>
+        <button class="tab" data-tab="vocab" data-i18n="tab.vocab">Learn Vocab</button>
+      </nav>
+
+      <!-- ===== TAB: TOPIC GENERATOR ===== -->
+      <section class="tab-content active" id="tab-generator">
+        <div class="card">
+          <div class="controls-row">
+            <div class="form-group">
+              <label data-i18n="label.category">Category</label>
+              <select id="topicCategory">
+                <option value="general" data-i18n="cat.general">General</option>
+                <option value="tech" data-i18n="cat.tech">Tech</option>
+                <option value="finance" data-i18n="cat.finance">Finance</option>
+                <option value="roast" data-i18n="cat.roast">Roast A Popular Thing</option>
+                <option value="defend" data-i18n="cat.defend">Defend The Worst Take</option>
+                <option value="millennial" data-i18n="cat.millennial">Millennial</option>
+                <option value="genz" data-i18n="cat.genz">Gen Z</option>
+                <option value="conspiracy" data-i18n="cat.conspiracy">Conspiracy Corner</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="label.difficulty">Difficulty</label>
+              <select id="topicDifficulty">
+                <option value="random" data-i18n="diff.random">Random</option>
+                <option value="easy" data-i18n="diff.easy">Easy</option>
+                <option value="medium" data-i18n="diff.medium">Medium</option>
+                <option value="hard" data-i18n="diff.hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="result-box" id="topicResult">
+            <p class="placeholder" data-i18n="ph.topic">Press generate to get your topic!</p>
+          </div>
+
+          <div class="result-actions" id="topicActions" style="display:none">
+            <button class="btn-copy" id="copyTopic" data-i18n="btn.copy">📋 Copy</button>
+          </div>
+
+          <button class="btn-generate" id="btnGenerateTopic">
+            <span class="btn-emoji">🎲</span>
+            <span data-i18n="btn.generate">Generate Topic</span>
+          </button>
+
+          <div class="timer-block">
+            <div class="timer-label" data-i18n="timer.label">Timer</div>
+            <div class="timer-display" id="genTimerDisplay">1:00</div>
+            <div class="timer-btns">
+              <button class="btn-timer btn-start" id="genTimerStart" data-i18n="timer.start">Start</button>
+              <button class="btn-timer btn-reset" id="genTimerReset" data-i18n="timer.reset">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Frameworks -->
+        <div class="card">
+          <h3 class="card-title" data-i18n="fw.title">Speech Frameworks</h3>
+          <div class="frameworks-grid">
+            <div class="fw-item">
+              <span class="fw-badge" style="background:#6C5CE7">PREP</span>
+              <div class="fw-desc"><strong>P</strong>oint → <strong>R</strong>eason → <strong>E</strong>xample → <strong>P</strong>oint</div>
+            </div>
+            <div class="fw-item">
+              <span class="fw-badge" style="background:#FD7E14">STAR</span>
+              <div class="fw-desc"><strong>S</strong>ituation → <strong>T</strong>ask → <strong>A</strong>ction → <strong>R</strong>esult</div>
+            </div>
+            <div class="fw-item">
+              <span class="fw-badge" style="background:#20C997">PPF</span>
+              <div class="fw-desc"><strong>P</strong>ast → <strong>P</strong>resent → <strong>F</strong>uture</div>
+            </div>
+            <div class="fw-item">
+              <span class="fw-badge" style="background:#E64980">MECE</span>
+              <div class="fw-desc" data-i18n="fw.mece">Mutually Exclusive, Collectively Exhaustive</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: INTERVIEW PREP ===== -->
+      <section class="tab-content" id="tab-interview">
+        <div class="card">
+          <div class="controls-row">
+            <div class="form-group">
+              <label data-i18n="label.qtype">Question Type</label>
+              <select id="interviewType">
+                <option value="behavioral" data-i18n="itype.behavioral">Behavioral</option>
+                <option value="technical" data-i18n="itype.technical">Technical</option>
+                <option value="situational" data-i18n="itype.situational">Situational</option>
+                <option value="consulting" data-i18n="itype.consulting">Consulting / Case</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="label.difficulty">Difficulty</label>
+              <select id="interviewDifficulty">
+                <option value="easy" data-i18n="diff.easy">Easy</option>
+                <option value="medium" data-i18n="diff.medium">Medium</option>
+                <option value="hard" data-i18n="diff.hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="result-box" id="interviewResult">
+            <p class="placeholder" data-i18n="ph.interview">Press generate to get your interview question!</p>
+          </div>
+
+          <div class="result-actions" id="interviewActions" style="display:none">
+            <button class="btn-copy" id="copyInterview" data-i18n="btn.copy">📋 Copy</button>
+          </div>
+
+          <button class="btn-generate" id="btnGenerateInterview">
+            <span class="btn-emoji">💼</span>
+            <span data-i18n="btn.generateQ">Generate Question</span>
+          </button>
+
+          <div class="timer-block">
+            <div class="timer-label" data-i18n="timer.label">Timer</div>
+            <div class="timer-display" id="intTimerDisplay">2:00</div>
+            <div class="timer-btns">
+              <button class="btn-timer btn-start" id="intTimerStart" data-i18n="timer.start">Start</button>
+              <button class="btn-timer btn-reset" id="intTimerReset" data-i18n="timer.reset">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tip-card">
+          <h3 class="card-title">💡 <span data-i18n="tip.star">Use the STAR Framework</span></h3>
+          <div class="star-steps">
+            <div class="star-step">
+              <span class="star-letter" style="background:#6C5CE7">S</span>
+              <div><strong data-i18n="star.s">Situation</strong><p data-i18n="star.sDesc">Set the scene and provide context</p></div>
+            </div>
+            <div class="star-step">
+              <span class="star-letter" style="background:#FD7E14">T</span>
+              <div><strong data-i18n="star.t">Task</strong><p data-i18n="star.tDesc">Describe your responsibility</p></div>
+            </div>
+            <div class="star-step">
+              <span class="star-letter" style="background:#20C997">A</span>
+              <div><strong data-i18n="star.a">Action</strong><p data-i18n="star.aDesc">Explain what you did</p></div>
+            </div>
+            <div class="star-step">
+              <span class="star-letter" style="background:#E64980">R</span>
+              <div><strong data-i18n="star.r">Result</strong><p data-i18n="star.rDesc">Share the outcome</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: LEARN VOCAB ===== -->
+      <section class="tab-content" id="tab-vocab">
+        <div class="card">
+          <div class="controls-row" style="max-width:240px">
+            <div class="form-group">
+              <label data-i18n="label.difficulty">Difficulty</label>
+              <select id="vocabDifficulty">
+                <option value="easy" data-i18n="diff.easy">Easy</option>
+                <option value="medium" data-i18n="diff.medium">Medium</option>
+                <option value="hard" data-i18n="diff.hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="vocab-box" id="vocabResult">
+            <p class="placeholder" data-i18n="ph.vocab">Press generate to get a vocabulary word!</p>
+          </div>
+
+          <div class="result-actions" id="vocabActions" style="display:none">
+            <button class="btn-copy" id="copyVocab" data-i18n="btn.copy">📋 Copy</button>
+          </div>
+
+          <button class="btn-generate" id="btnGenerateVocab">
+            <span class="btn-emoji">📚</span>
+            <span data-i18n="btn.generateVocab">Get Vocabulary</span>
+          </button>
+
+          <div class="timer-block">
+            <div class="timer-label" data-i18n="timer.label">Timer</div>
+            <div class="timer-display" id="vocTimerDisplay">0:30</div>
+            <div class="timer-btns">
+              <button class="btn-timer btn-start" id="vocTimerStart" data-i18n="timer.start">Start</button>
+              <button class="btn-timer btn-reset" id="vocTimerReset" data-i18n="timer.reset">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tip-card">
+          <h3 class="card-title">💡 <span data-i18n="tip.vocab">How to Practice</span></h3>
+          <ol class="practice-list">
+            <li data-i18n="vp.1">Read the word and its definition carefully</li>
+            <li data-i18n="vp.2">Start the 30-second timer</li>
+            <li data-i18n="vp.3">Speak a sentence out loud using the word</li>
+            <li data-i18n="vp.4">Try to use it 3 times naturally in speech</li>
+          </ol>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 data-i18n="settings.title">Settings</h2>
+        <button class="btn-close" id="closeSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label data-i18n="settings.apiLabel">Groq API Key (Free)</label>
+          <div class="input-row">
+            <input type="password" id="apiKeyInput" placeholder="gsk_..." autocomplete="off">
+            <button class="btn-eye" id="toggleApiKey" title="Show/hide">👁</button>
+          </div>
+          <p class="hint" data-i18n="settings.hint">Stored in your browser only. Never sent to our servers.</p>
+          <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="hint-link" data-i18n="settings.getKey">Get your FREE Groq API key (no credit card) →</a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelSettings" data-i18n="btn.cancel">Cancel</button>
+        <button class="btn-primary" id="saveSettings" data-i18n="btn.save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
