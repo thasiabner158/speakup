@@ -223,15 +223,33 @@ function switchTab(tab) {
 // ---- Timers ----
 function setupTimer(id, displayId, startId, resetId) {
   const tm = state.timers[id];
-  const display = $(displayId);
+  const display  = $(displayId);
   const startBtn = $(startId);
   const resetBtn = $(resetId);
+  const setRow   = $(`${id}TimerSet`);
+  const minInput = $(`${id}TimerMin`);
+  const secInput = $(`${id}TimerSec`);
+
+  function readInputSec() {
+    const m = Math.max(0, parseInt(minInput?.value) || 0);
+    const s = Math.max(0, Math.min(59, parseInt(secInput?.value) || 0));
+    return Math.max(1, m * 60 + s);
+  }
 
   function refresh() {
     display.textContent = fmtTime(tm.sec);
     display.classList.toggle('running', tm.running && tm.sec > 10);
     display.classList.toggle('danger',  tm.running && tm.sec <= 10);
+    if (setRow) setRow.style.display = tm.running ? 'none' : 'flex';
   }
+
+  // Live-update display as user types
+  [minInput, secInput].forEach(inp => {
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      if (!tm.running) { tm.sec = readInputSec(); tm.initial = tm.sec; refresh(); }
+    });
+  });
 
   startBtn.addEventListener('click', () => {
     if (tm.running) {
@@ -240,7 +258,7 @@ function setupTimer(id, displayId, startId, resetId) {
       startBtn.textContent = t('timer.start');
       startBtn.classList.remove('is-running');
     } else {
-      if (tm.sec === 0) tm.sec = tm.initial;
+      if (tm.sec === 0) { tm.initial = readInputSec(); tm.sec = tm.initial; }
       tm.running = true;
       startBtn.textContent = t('timer.pause');
       startBtn.classList.add('is-running');
@@ -263,6 +281,7 @@ function setupTimer(id, displayId, startId, resetId) {
   resetBtn.addEventListener('click', () => {
     clearInterval(tm.interval);
     tm.running = false;
+    tm.initial = readInputSec();
     tm.sec = tm.initial;
     startBtn.textContent = t('timer.start');
     startBtn.classList.remove('is-running');

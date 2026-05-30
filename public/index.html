@@ -6,7 +6,7 @@
   <title>SpeakUp - Speech Topic Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -92,6 +92,12 @@
           <div class="timer-block">
             <div class="timer-label" data-i18n="timer.label">Timer</div>
             <div class="timer-display" id="genTimerDisplay">1:00</div>
+            <div class="timer-set" id="genTimerSet">
+              <input type="number" class="timer-input" id="genTimerMin" min="0" max="59" value="1">
+              <span class="timer-sep">m</span>
+              <input type="number" class="timer-input" id="genTimerSec" min="0" max="59" value="0">
+              <span class="timer-sep">s</span>
+            </div>
             <div class="timer-btns">
               <button class="btn-timer btn-start" id="genTimerStart" data-i18n="timer.start">Start</button>
               <button class="btn-timer btn-reset" id="genTimerReset" data-i18n="timer.reset">Reset</button>
@@ -183,6 +189,12 @@
           <div class="timer-block">
             <div class="timer-label" data-i18n="timer.label">Timer</div>
             <div class="timer-display" id="intTimerDisplay">2:00</div>
+            <div class="timer-set" id="intTimerSet">
+              <input type="number" class="timer-input" id="intTimerMin" min="0" max="59" value="2">
+              <span class="timer-sep">m</span>
+              <input type="number" class="timer-input" id="intTimerSec" min="0" max="59" value="0">
+              <span class="timer-sep">s</span>
+            </div>
             <div class="timer-btns">
               <button class="btn-timer btn-start" id="intTimerStart" data-i18n="timer.start">Start</button>
               <button class="btn-timer btn-reset" id="intTimerReset" data-i18n="timer.reset">Reset</button>
@@ -264,6 +276,12 @@
           <div class="timer-block">
             <div class="timer-label" data-i18n="timer.label">Timer</div>
             <div class="timer-display" id="vocTimerDisplay">0:30</div>
+            <div class="timer-set" id="vocTimerSet">
+              <input type="number" class="timer-input" id="vocTimerMin" min="0" max="59" value="0">
+              <span class="timer-sep">m</span>
+              <input type="number" class="timer-input" id="vocTimerSec" min="0" max="59" value="30">
+              <span class="timer-sep">s</span>
+            </div>
             <div class="timer-btns">
               <button class="btn-timer btn-start" id="vocTimerStart" data-i18n="timer.start">Start</button>
               <button class="btn-timer btn-reset" id="vocTimerReset" data-i18n="timer.reset">Reset</button>
@@ -335,6 +353,6 @@
     <div class="spinner"></div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
