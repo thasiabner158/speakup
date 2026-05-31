@@ -22,7 +22,7 @@ app.post('/api/generate', async (req, res) => {
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 512,
+        max_tokens: 1024,
         temperature: 0.9
       })
     });

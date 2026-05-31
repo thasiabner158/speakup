@@ -643,9 +643,14 @@ async function toggleSampleAnswer(tabId) {
   const frameworks = ['PREP', 'STAR', 'PPF'];
   const fw = frameworks[Math.floor(Math.random() * frameworks.length)];
 
+  const timerMin = Math.max(0, parseInt($(`${tabId}TimerMin`)?.value) || 0);
+  const timerSec = Math.max(0, parseInt($(`${tabId}TimerSec`)?.value) || 0);
+  const totalSec = Math.max(15, timerMin * 60 + timerSec);
+  const targetWords = Math.round((totalSec / 60) * 130);
+
   const prompt = state.lang === 'vi'
-    ? `Viết một bài nói mẫu IELTS Speaking khoảng 150 từ cho chủ đề/câu hỏi sau, theo cấu trúc ${fw}:\n"${context}"\n\nTrả về JSON hợp lệ (không markdown):\n{"framework":"${fw}","answer":"bài nói mẫu hoàn chỉnh bằng tiếng Anh, khoảng 150 từ","wordCount":150,"keyPhrases":["cụm từ hay 1","cụm từ hay 2","cụm từ hay 3"]}`
-    : `Write a model IELTS Speaking answer of around 150 words for this topic/question using the ${fw} framework:\n"${context}"\n\nReturn valid JSON only (no markdown):\n{"framework":"${fw}","answer":"full model answer ~150 words","wordCount":150,"keyPhrases":["useful phrase 1","useful phrase 2","useful phrase 3"]}`;
+    ? `Viết bài nói mẫu IELTS Speaking theo cấu trúc ${fw} cho chủ đề: "${context}"\n\nBài nói phải dài khoảng ${targetWords} từ tiếng Anh. Viết đầy đủ, tự nhiên như đang nói thật.\n\nChỉ trả về JSON hợp lệ, không có markdown:\n{"framework":"${fw}","answer":"toàn bộ bài nói ở đây","keyPhrases":["cụm từ hay 1","cụm từ hay 2","cụm từ hay 3"]}`
+    : `Write an IELTS Speaking model answer using the ${fw} framework for this topic: "${context}"\n\nThe answer must be approximately ${targetWords} words. Write naturally as if actually speaking — full sentences, connectors, examples.\n\nReturn valid JSON only, no markdown fences:\n{"framework":"${fw}","answer":"the full answer text goes here","keyPhrases":["useful phrase 1","useful phrase 2","useful phrase 3"]}`;
 
   btn.textContent = t('sample.loading');
   btn.disabled = true;
@@ -655,26 +660,39 @@ async function toggleSampleAnswer(tabId) {
 
   if (!result) return;
 
+  let answerText = '';
+  let phrases = '';
+  let frameworkLabel = fw;
+
   try {
-    const data = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
-    const phrases = (data.keyPhrases || []).map(p => `<span class="sample-phrase">${escHtml(p)}</span>`).join('');
-    card.innerHTML = `
-      <div class="sample-header">
-        <span class="sample-title">✨ ${t('sample.title')}</span>
-        <span class="sample-fw-badge">${escHtml(data.framework || fw)}</span>
-      </div>
-      <div class="sample-text">${escHtml(data.answer || '')}</div>
-      ${phrases ? `<div><div style="font-size:.75rem;font-weight:600;color:#92400E;margin-bottom:5px">${t('sample.keyphrases')}</div><div class="sample-key-phrases">${phrases}</div></div>` : ''}
-      <div class="sample-footer">
-        <span class="sample-wc">📝 ~${data.wordCount || 150} words</span>
-      </div>
-    `;
-    wrap.style.display = 'block';
-    btn.classList.add('active');
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const clean = result.replace(/```json\s*|\s*```/gi, '').trim();
+    const data = JSON.parse(clean);
+    answerText = data.answer || '';
+    frameworkLabel = data.framework || fw;
+    phrases = (data.keyPhrases || []).map(p => `<span class="sample-phrase">${escHtml(p)}</span>`).join('');
   } catch {
-    showToast(t('toast.error') + 'Could not generate sample', 'err');
+    // JSON parse failed — extract answer text directly from raw result
+    const m = result.match(/"answer"\s*:\s*"([\s\S]*?)(?<!\\)",/);
+    answerText = m ? m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : result.replace(/```[\s\S]*?```/g, '').trim();
   }
+
+  if (!answerText) { showToast(t('toast.error') + 'Empty response', 'err'); return; }
+
+  const actualWords = answerText.trim().split(/\s+/).filter(Boolean).length;
+  card.innerHTML = `
+    <div class="sample-header">
+      <span class="sample-title">✨ ${t('sample.title')}</span>
+      <span class="sample-fw-badge">${escHtml(frameworkLabel)}</span>
+    </div>
+    <div class="sample-text">${escHtml(answerText)}</div>
+    ${phrases ? `<div><div style="font-size:.75rem;font-weight:600;color:#92400E;margin-bottom:5px">${t('sample.keyphrases')}</div><div class="sample-key-phrases">${phrases}</div></div>` : ''}
+    <div class="sample-footer">
+      <span class="sample-wc">📝 ${actualWords} words</span>
+    </div>
+  `;
+  wrap.style.display = 'block';
+  btn.classList.add('active');
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ---- Settings Modal ----
