@@ -485,6 +485,30 @@ select:focus, input:focus {
 .ielts-tips-list { padding-left: 16px; }
 .ielts-tips-list li { font-size: .8rem; color: #374151; line-height: 1.8; }
 
+/* IELTS grid single-column for richer content */
+.ielts-grid { grid-template-columns: 1fr; }
+.ielts-criterion { border-right: none !important; border-bottom: 1px solid #BFDBFE; }
+.ielts-criterion:last-child { border-bottom: none; }
+
+/* Grammar corrections */
+.ic-section-title { font-size: .72rem; font-weight: 700; color: #1D4ED8; text-transform: uppercase; letter-spacing: .4px; margin: 8px 0 5px; }
+.ic-correction { background: #fff; border-radius: 6px; padding: 7px 10px; margin-bottom: 6px; border: 1px solid #BFDBFE; }
+.ic-wrong { font-size: .78rem; color: #DC2626; margin-bottom: 3px; }
+.ic-right { font-size: .78rem; color: #059669; margin-bottom: 3px; }
+.ic-note { font-size: .72rem; color: #6B7280; font-style: italic; }
+
+/* Vocabulary upgrades */
+.ic-upgrade { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 5px; }
+.ic-weak { font-size: .78rem; background: #FEE2E2; color: #DC2626; padding: 2px 7px; border-radius: 20px; }
+.ic-arrow { font-size: .8rem; color: #6B7280; }
+.ic-strong { font-size: .78rem; background: #D1FAE5; color: #059669; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+.ic-ctx { font-size: .72rem; color: #6B7280; font-style: italic; }
+
+/* Band 7-9 corrected version */
+.ielts-corrected { padding: 16px; background: #F0FDF4; border-top: 1px solid #BBF7D0; }
+.ielts-corrected-title { font-size: .82rem; font-weight: 700; color: #065F46; margin-bottom: 8px; }
+.ielts-corrected-text { font-size: .875rem; line-height: 1.75; color: #1A1A2E; white-space: pre-wrap; }
+
 /* ===== Responsive ===== */
 @media (max-width: 520px) {
   .controls-row { flex-direction: column; }

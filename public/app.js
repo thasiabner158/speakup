@@ -86,6 +86,9 @@ const TRANSLATIONS = {
     'ielts.p': 'Pronunciation',
     'ielts.tips': 'Key Improvements',
     'ielts.words': 'words spoken',
+    'ielts.errors': 'Grammar Corrections',
+    'ielts.upgrades': 'Vocabulary Upgrades',
+    'ielts.corrected': 'Band 7–9 Rewrite',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -169,6 +172,9 @@ const TRANSLATIONS = {
     'ielts.p': 'Pronunciation',
     'ielts.tips': 'Cần Cải Thiện',
     'ielts.words': 'từ đã nói',
+    'ielts.errors': 'Sửa Lỗi Ngữ Pháp',
+    'ielts.upgrades': 'Nâng Cấp Từ Vựng',
+    'ielts.corrected': 'Bài Viết Lại Band 7–9',
   }
 };
 
@@ -314,13 +320,45 @@ async function callAPI(prompt) {
 
 // ---- Prompts ----
 const CAT_EN = {
-  general: 'general topics', tech: 'technology', finance: 'finance & money',
+  // IELTS topics
+  education: 'education', work_career: 'work and career', hometown: 'hometown',
+  family_friends: 'family and friends', daily_routine: 'daily routine', hobbies: 'hobbies',
+  travel: 'travel', technology: 'technology', social_media: 'social media',
+  health_fitness: 'health and fitness', food: 'food', environment: 'the environment',
+  shopping: 'shopping', music: 'music', movies: 'movies', books: 'books', art: 'art',
+  fashion: 'fashion', sports: 'sports', transportation: 'transportation', sleep: 'sleep',
+  stress: 'stress', time_management: 'time management', festivals: 'festivals and holidays',
+  childhood: 'childhood memories', communication: 'communication', animals: 'animals and pets',
+  housing: 'housing and accommodation', future_plans: 'future plans', success: 'success',
+  happiness: 'happiness', culture: 'culture', tourism: 'tourism',
+  public_transport: 'public transport', climate_change: 'climate change',
+  smartphones: 'smartphones', online_learning: 'online learning', advertising: 'advertising',
+  celebrities: 'celebrities', news: 'news', internet: 'the internet',
+  city_vs_country: 'city vs countryside',
+  // Fun topics
+  general: 'general topics', finance: 'finance & money',
   roast: 'roasting/mocking something popular', defend: 'defending an unpopular opinion',
   millennial: 'millennial culture & experiences', genz: 'Gen Z culture & trends',
   conspiracy: 'fun & absurd conspiracy theories',
 };
 const CAT_VI = {
-  general: 'chủ đề chung', tech: 'công nghệ', finance: 'tài chính & tiền bạc',
+  // IELTS topics
+  education: 'giáo dục', work_career: 'công việc và sự nghiệp', hometown: 'quê hương',
+  family_friends: 'gia đình và bạn bè', daily_routine: 'thói quen hàng ngày', hobbies: 'sở thích',
+  travel: 'du lịch', technology: 'công nghệ', social_media: 'mạng xã hội',
+  health_fitness: 'sức khỏe và thể dục', food: 'ẩm thực', environment: 'môi trường',
+  shopping: 'mua sắm', music: 'âm nhạc', movies: 'phim ảnh', books: 'sách', art: 'nghệ thuật',
+  fashion: 'thời trang', sports: 'thể thao', transportation: 'phương tiện giao thông',
+  sleep: 'giấc ngủ', stress: 'căng thẳng', time_management: 'quản lý thời gian',
+  festivals: 'lễ hội và kỳ nghỉ', childhood: 'ký ức tuổi thơ', communication: 'giao tiếp',
+  animals: 'động vật và thú cưng', housing: 'nhà ở', future_plans: 'kế hoạch tương lai',
+  success: 'thành công', happiness: 'hạnh phúc', culture: 'văn hóa', tourism: 'du lịch quốc tế',
+  public_transport: 'giao thông công cộng', climate_change: 'biến đổi khí hậu',
+  smartphones: 'điện thoại thông minh', online_learning: 'học trực tuyến',
+  advertising: 'quảng cáo', celebrities: 'người nổi tiếng', news: 'tin tức',
+  internet: 'internet', city_vs_country: 'thành phố vs nông thôn',
+  // Fun topics
+  general: 'chủ đề chung', finance: 'tài chính & tiền bạc',
   roast: 'chê bai một điều phổ biến', defend: 'bảo vệ quan điểm không phổ biến',
   millennial: 'văn hóa thế hệ millennial', genz: 'văn hóa thế hệ Gen Z',
   conspiracy: 'thuyết âm mưu vui và phi lý',
@@ -536,8 +574,8 @@ async function analyzeSpeech(tabId) {
   const wordCount = transcript.trim().split(/\s+/).length;
 
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS. Đánh giá bài nói sau theo 4 tiêu chí IELTS Speaking.${context ? `\nChủ đề: "${context}"` : ''}\nBài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC bằng tiếng Việt","tips":["gợi ý 1"]},"GRA":{"band":6,"feedback":"nhận xét GRA","tips":["gợi ý 1"]},"LR":{"band":6.5,"feedback":"nhận xét LR","tips":["gợi ý 1"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý 1"]},"overallTips":["cải thiện chính 1","cải thiện chính 2"]}\nBand theo thang IELTS 1-9 (có thể dùng 0.5). Khuyến khích nhưng trung thực.`
-    : `You are an IELTS examiner. Evaluate this speaking response on the 4 IELTS Speaking criteria.${context ? `\nTopic: "${context}"` : ''}\nResponse (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"specific FC feedback","tips":["tip 1"]},"GRA":{"band":6,"feedback":"specific GRA feedback","tips":["tip 1"]},"LR":{"band":6.5,"feedback":"specific LR feedback","tips":["tip 1"]},"P":{"band":6,"feedback":"specific P feedback","tips":["tip 1"]},"overallTips":["key improvement 1","key improvement 2"]}\nBands are IELTS scale 1-9 (0.5 increments allowed). Be specific, encouraging, and honest.`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Phân tích KỸ bài nói sau theo 4 tiêu chí IELTS Speaking.${context ? `\nChủ đề: "${context}"` : ''}\nBài nói (${wordCount} từ): "${transcript}"\n\nCung cấp nhận xét CHI TIẾT, trích dẫn câu cụ thể từ bài nói. Trả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét chi tiết về fluency, coherence, discourse markers","tips":["gợi ý cụ thể 1","gợi ý cụ thể 2"]},"GRA":{"band":6,"feedback":"nhận xét tổng về grammar","errors":[{"original":"câu sai trích từ bài","corrected":"câu đã sửa","note":"giải thích ngắn"}],"tips":["gợi ý grammar"]},"LR":{"band":6,"feedback":"nhận xét tổng về từ vựng","upgrades":[{"weak":"từ yếu đã dùng","better":"từ mạnh hơn","context":"ngữ cảnh dùng"}],"tips":["gợi ý từ vựng"]},"P":{"band":6,"feedback":"nhận xét về phát âm dựa trên cấu trúc câu","tips":["gợi ý phát âm"]},"overallTips":["cải thiện quan trọng nhất 1","cải thiện quan trọng nhất 2"],"correctedVersion":"Viết lại toàn bộ bài nói ở trình độ Band 7-9 bằng tiếng Anh, giữ nguyên ý chính nhưng dùng từ vựng cao cấp, ngữ pháp phức tạp và discourse markers tự nhiên"}\nBand theo thang IELTS 1-9 (có thể dùng 0.5). errors tối đa 3. upgrades tối đa 3.`
+    : `You are a professional IELTS examiner. Analyze this speaking response IN DETAIL across all 4 IELTS Speaking criteria.${context ? `\nTopic: "${context}"` : ''}\nResponse (${wordCount} words): "${transcript}"\n\nProvide SPECIFIC feedback quoting actual sentences. Return valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"detailed feedback on fluency, coherence, discourse markers — quote specific parts","tips":["actionable tip 1","actionable tip 2"]},"GRA":{"band":6,"feedback":"overall grammar assessment","errors":[{"original":"exact sentence from response","corrected":"corrected version","note":"brief explanation"}],"tips":["specific grammar tip"]},"LR":{"band":6,"feedback":"overall vocabulary assessment","upgrades":[{"weak":"weak word used","better":"stronger alternative","context":"brief context"}],"tips":["specific vocab tip"]},"P":{"band":6,"feedback":"pronunciation notes based on word complexity and patterns","tips":["specific pronunciation tip"]},"overallTips":["most important improvement 1","most important improvement 2"],"correctedVersion":"Full Band 7-9 rewrite keeping the same ideas but using sophisticated vocabulary, complex grammar structures, and natural discourse markers"}\nBands: IELTS 1-9 scale (0.5 increments). Max 3 errors, max 3 upgrades.`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -571,6 +609,28 @@ function renderIeltsCard(tabId, s) {
     const b = c.band || 0;
     const col = bandColor(b);
     const tips = (c.tips || []).map(tip => `<li>${escHtml(tip)}</li>`).join('');
+
+    let extrasHtml = '';
+    if (key === 'GRA' && c.errors?.length) {
+      extrasHtml += `<div class="ic-section-title">${t('ielts.errors')}</div>`;
+      extrasHtml += c.errors.map(e => `
+        <div class="ic-correction">
+          <div class="ic-wrong">❌ ${escHtml(e.original || '')}</div>
+          <div class="ic-right">✅ ${escHtml(e.corrected || '')}</div>
+          ${e.note ? `<div class="ic-note">${escHtml(e.note)}</div>` : ''}
+        </div>`).join('');
+    }
+    if (key === 'LR' && c.upgrades?.length) {
+      extrasHtml += `<div class="ic-section-title">${t('ielts.upgrades')}</div>`;
+      extrasHtml += c.upgrades.map(u => `
+        <div class="ic-upgrade">
+          <span class="ic-weak">${escHtml(u.weak || '')}</span>
+          <span class="ic-arrow">→</span>
+          <span class="ic-strong">${escHtml(u.better || '')}</span>
+          ${u.context ? `<span class="ic-ctx">${escHtml(u.context)}</span>` : ''}
+        </div>`).join('');
+    }
+
     return `
       <div class="ielts-criterion">
         <div class="ic-header">
@@ -579,6 +639,7 @@ function renderIeltsCard(tabId, s) {
         </div>
         <div class="ic-bar"><div style="width:${(b/9)*100}%;background:${col}"></div></div>
         <p class="ic-feedback">${escHtml(c.feedback || '')}</p>
+        ${extrasHtml}
         ${tips ? `<ul class="ic-tips">${tips}</ul>` : ''}
       </div>`;
   };
@@ -606,6 +667,11 @@ function renderIeltsCard(tabId, s) {
     <div class="ielts-footer">
       <div class="ielts-footer-title">📈 ${t('ielts.tips')}</div>
       <ul class="ielts-tips-list">${overallTips}</ul>
+    </div>` : ''}
+    ${s.correctedVersion ? `
+    <div class="ielts-corrected">
+      <div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div>
+      <div class="ielts-corrected-text">${escHtml(s.correctedVersion)}</div>
     </div>` : ''}
   `;
   card.style.display = 'block';
