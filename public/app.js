@@ -89,6 +89,7 @@ const TRANSLATIONS = {
     'ielts.errors': 'Grammar Corrections',
     'ielts.upgrades': 'Vocabulary Upgrades',
     'ielts.corrected': 'Band 7–9 Rewrite',
+    'ielts.rewritePhrases': 'Useful Phrases from Rewrite',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -175,6 +176,7 @@ const TRANSLATIONS = {
     'ielts.errors': 'Sửa Lỗi Ngữ Pháp',
     'ielts.upgrades': 'Nâng Cấp Từ Vựng',
     'ielts.corrected': 'Bài Viết Lại Band 7–9',
+    'ielts.rewritePhrases': 'Cụm Từ Hay Từ Bài Viết Lại',
   }
 };
 
@@ -368,11 +370,20 @@ const DIFF_VI = { random: 'ngẫu nhiên', easy: 'dễ', medium: 'trung bình', 
 const ITYPE_EN = { behavioral: 'behavioral', technical: 'technical', situational: 'situational', consulting: 'consulting/case-study' };
 const ITYPE_VI = { behavioral: 'hành vi', technical: 'kỹ thuật', situational: 'tình huống', consulting: 'tư vấn/case study' };
 
+const FUN_CATS = new Set(['general','finance','roast','defend','millennial','genz','conspiracy']);
+
 function buildTopicPrompt(category, difficulty) {
+  const isIelts = !FUN_CATS.has(category);
   if (state.lang === 'vi') {
-    return `Tạo một chủ đề diễn thuyết ngẫu hứng thú vị và sáng tạo về ${CAT_VI[category] || category}. Độ khó: ${DIFF_VI[difficulty] || difficulty}. Chủ đề phải là một câu hoặc câu hỏi rõ ràng để người nói có thể diễn thuyết trong 1-2 phút. Chỉ trả về chủ đề, không giải thích thêm. Viết bằng tiếng Việt.`;
+    if (isIelts) {
+      return `Tạo một câu hỏi luyện nói thực tế và thú vị về chủ đề "${CAT_VI[category] || category}" theo phong cách đề thi IELTS/TOEIC/VSTEP Speaking. Độ khó: ${DIFF_VI[difficulty] || difficulty}.\nCó thể là dạng: câu hỏi cá nhân (Part 1), mô tả trải nghiệm/người/địa điểm (Part 2 với bullet points), hoặc thảo luận quan điểm (Part 3).\nCâu hỏi phải thực tế, gần gũi cuộc sống, giúp người học nói được nhiều và học được nhiều từ đó.\nChỉ trả về câu hỏi bằng tiếng Anh, không giải thích thêm.`;
+    }
+    return `Tạo một chủ đề diễn thuyết sáng tạo về ${CAT_VI[category] || category}. Độ khó: ${DIFF_VI[difficulty] || difficulty}. Một câu rõ ràng. Chỉ trả về chủ đề, không giải thích.`;
   }
-  return `Generate a creative and engaging impromptu speech topic about ${CAT_EN[category] || category}. Difficulty: ${DIFF_EN[difficulty] || difficulty}. The topic must be a single clear sentence or question that someone can speak about for 1-2 minutes. Return ONLY the topic — no explanations, no numbering, no prefixes.`;
+  if (isIelts) {
+    return `Generate a realistic and interesting speaking practice question about "${CAT_EN[category] || category}" in the style of IELTS/TOEIC/VSTEP Speaking tests. Difficulty: ${DIFF_EN[difficulty] || difficulty}.\nIt can be: a personal question (Part 1 style), a describe/talk-about prompt with bullet cues (Part 2 style), or an opinion/discussion question (Part 3 style).\nThe question must be practical, relatable, thought-provoking, and help learners expand their ideas naturally.\nReturn ONLY the question in English — no numbering, no label, no explanation.`;
+  }
+  return `Generate a creative and engaging impromptu speech topic about ${CAT_EN[category] || category}. Difficulty: ${DIFF_EN[difficulty] || difficulty}. Single clear sentence or question. Return ONLY the topic — no explanations, no numbering.`;
 }
 
 function buildInterviewPrompt(type, difficulty) {
@@ -574,8 +585,8 @@ async function analyzeSpeech(tabId) {
   const wordCount = transcript.trim().split(/\s+/).length;
 
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Phân tích KỸ bài nói sau theo 4 tiêu chí IELTS Speaking.${context ? `\nChủ đề: "${context}"` : ''}\nBài nói (${wordCount} từ): "${transcript}"\n\nCung cấp nhận xét CHI TIẾT, trích dẫn câu cụ thể từ bài nói. Trả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét chi tiết về fluency, coherence, discourse markers","tips":["gợi ý cụ thể 1","gợi ý cụ thể 2"]},"GRA":{"band":6,"feedback":"nhận xét tổng về grammar","errors":[{"original":"câu sai trích từ bài","corrected":"câu đã sửa","note":"giải thích ngắn"}],"tips":["gợi ý grammar"]},"LR":{"band":6,"feedback":"nhận xét tổng về từ vựng","upgrades":[{"weak":"từ yếu đã dùng","better":"từ mạnh hơn","context":"ngữ cảnh dùng"}],"tips":["gợi ý từ vựng"]},"P":{"band":6,"feedback":"nhận xét về phát âm dựa trên cấu trúc câu","tips":["gợi ý phát âm"]},"overallTips":["cải thiện quan trọng nhất 1","cải thiện quan trọng nhất 2"],"correctedVersion":"Viết lại toàn bộ bài nói ở trình độ Band 7-9 bằng tiếng Anh, giữ nguyên ý chính nhưng dùng từ vựng cao cấp, ngữ pháp phức tạp và discourse markers tự nhiên"}\nBand theo thang IELTS 1-9 (có thể dùng 0.5). errors tối đa 3. upgrades tối đa 3.`
-    : `You are a professional IELTS examiner. Analyze this speaking response IN DETAIL across all 4 IELTS Speaking criteria.${context ? `\nTopic: "${context}"` : ''}\nResponse (${wordCount} words): "${transcript}"\n\nProvide SPECIFIC feedback quoting actual sentences. Return valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"detailed feedback on fluency, coherence, discourse markers — quote specific parts","tips":["actionable tip 1","actionable tip 2"]},"GRA":{"band":6,"feedback":"overall grammar assessment","errors":[{"original":"exact sentence from response","corrected":"corrected version","note":"brief explanation"}],"tips":["specific grammar tip"]},"LR":{"band":6,"feedback":"overall vocabulary assessment","upgrades":[{"weak":"weak word used","better":"stronger alternative","context":"brief context"}],"tips":["specific vocab tip"]},"P":{"band":6,"feedback":"pronunciation notes based on word complexity and patterns","tips":["specific pronunciation tip"]},"overallTips":["most important improvement 1","most important improvement 2"],"correctedVersion":"Full Band 7-9 rewrite keeping the same ideas but using sophisticated vocabulary, complex grammar structures, and natural discourse markers"}\nBands: IELTS 1-9 scale (0.5 increments). Max 3 errors, max 3 upgrades.`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Phân tích KỸ bài nói sau theo 4 tiêu chí IELTS Speaking.${context ? `\nChủ đề: "${context}"` : ''}\nBài nói (${wordCount} từ): "${transcript}"\n\nCung cấp nhận xét CHI TIẾT, trích dẫn câu cụ thể từ bài nói. Trả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét chi tiết về fluency, coherence, discourse markers — trích câu cụ thể","tips":["gợi ý cụ thể 1","gợi ý cụ thể 2"]},"GRA":{"band":6,"feedback":"nhận xét tổng về grammar","errors":[{"original":"câu sai trích từ bài","corrected":"câu đã sửa","note":"giải thích ngắn"}],"tips":["gợi ý grammar"]},"LR":{"band":6,"feedback":"nhận xét tổng về từ vựng","upgrades":[{"weak":"từ yếu đã dùng","better":"từ mạnh hơn","context":"ngữ cảnh dùng"}],"tips":["gợi ý từ vựng"]},"P":{"band":6,"feedback":"nhận xét về phát âm dựa trên cấu trúc câu","tips":["gợi ý phát âm"]},"overallTips":["cải thiện quan trọng nhất 1","cải thiện quan trọng nhất 2"],"correctedVersion":"Viết lại TOÀN BỘ bài nói ở trình độ Band 7-9 bằng tiếng Anh, tối thiểu 200 từ, giữ nguyên ý chính nhưng dùng từ vựng cao cấp, cấu trúc ngữ pháp phức tạp (relative clauses, conditionals, passive voice), discourse markers tự nhiên và ví dụ cụ thể","rewritePhrases":["cụm từ hay 1 từ bài viết lại","cụm từ hay 2","cụm từ hay 3","cụm từ hay 4","cụm từ hay 5"]}\nBand theo thang IELTS 1-9 (có thể dùng 0.5). errors tối đa 3. upgrades tối đa 3.`
+    : `You are a professional IELTS examiner. Analyze this speaking response IN DETAIL across all 4 IELTS Speaking criteria.${context ? `\nTopic: "${context}"` : ''}\nResponse (${wordCount} words): "${transcript}"\n\nProvide SPECIFIC feedback quoting actual sentences. Return valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"detailed feedback on fluency, coherence, discourse markers — quote specific parts","tips":["actionable tip 1","actionable tip 2"]},"GRA":{"band":6,"feedback":"overall grammar assessment","errors":[{"original":"exact sentence from response","corrected":"corrected version","note":"brief explanation"}],"tips":["specific grammar tip"]},"LR":{"band":6,"feedback":"overall vocabulary assessment","upgrades":[{"weak":"weak word used","better":"stronger alternative","context":"brief context"}],"tips":["specific vocab tip"]},"P":{"band":6,"feedback":"pronunciation notes based on word complexity and patterns","tips":["specific pronunciation tip"]},"overallTips":["most important improvement 1","most important improvement 2"],"correctedVersion":"Full Band 7-9 rewrite of AT LEAST 200 words keeping the same ideas but with sophisticated vocabulary, complex grammar (relative clauses, conditionals, passive voice, mixed tenses), natural discourse markers, and concrete examples","rewritePhrases":["useful phrase 1 from rewrite","useful phrase 2","useful phrase 3","useful phrase 4","useful phrase 5"]}\nBands: IELTS 1-9 scale (0.5 increments). Max 3 errors, max 3 upgrades.`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -672,6 +683,9 @@ function renderIeltsCard(tabId, s) {
     <div class="ielts-corrected">
       <div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div>
       <div class="ielts-corrected-text">${escHtml(s.correctedVersion)}</div>
+      ${s.rewritePhrases?.length ? `
+      <div class="ielts-rw-phrases-title">${t('ielts.rewritePhrases')}</div>
+      <div class="ielts-rw-phrases">${s.rewritePhrases.map(p => `<span class="ielts-rw-phrase">${escHtml(p)}</span>`).join('')}</div>` : ''}
     </div>` : ''}
   `;
   card.style.display = 'block';
