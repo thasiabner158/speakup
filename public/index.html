@@ -6,7 +6,7 @@
   <title>SpeakUp - Speech Topic Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -40,6 +40,7 @@
       <!-- Tabs -->
       <nav class="tabs">
         <button class="tab active" data-tab="generator" data-i18n="tab.generator">Topic Generator</button>
+        <button class="tab" data-tab="ielts" data-i18n="tab.ielts">IELTS Practice</button>
         <button class="tab" data-tab="interview" data-i18n="tab.interview">Interview Prep</button>
         <button class="tab" data-tab="vocab" data-i18n="tab.vocab">Learn Vocab</button>
       </nav>
@@ -186,6 +187,127 @@
             <div class="fw-item">
               <span class="fw-badge" style="background:#E64980">MECE</span>
               <div class="fw-desc" data-i18n="fw.mece">Mutually Exclusive, Collectively Exhaustive</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: IELTS PRACTICE ===== -->
+      <section class="tab-content" id="tab-ielts">
+        <div class="card">
+          <div class="controls-row">
+            <div class="form-group">
+              <label data-i18n="label.ieltsTopic">IELTS Topic</label>
+              <select id="ieltsMockTopic">
+                <option value="education">Education</option>
+                <option value="work_career">Work / Career</option>
+                <option value="hometown">Hometown</option>
+                <option value="family_friends">Family &amp; Friends</option>
+                <option value="daily_routine">Daily Routine</option>
+                <option value="hobbies">Hobbies</option>
+                <option value="travel">Travel</option>
+                <option value="technology">Technology</option>
+                <option value="social_media">Social Media</option>
+                <option value="health_fitness">Health &amp; Fitness</option>
+                <option value="food">Food</option>
+                <option value="environment">Environment</option>
+                <option value="shopping">Shopping</option>
+                <option value="music">Music</option>
+                <option value="movies">Movies</option>
+                <option value="books">Books</option>
+                <option value="art">Art</option>
+                <option value="fashion">Fashion</option>
+                <option value="sports">Sports</option>
+                <option value="transportation">Transportation</option>
+                <option value="sleep">Sleep</option>
+                <option value="stress">Stress</option>
+                <option value="time_management">Time Management</option>
+                <option value="festivals">Festivals &amp; Holidays</option>
+                <option value="childhood">Childhood Memories</option>
+                <option value="communication">Communication</option>
+                <option value="animals">Animals / Pets</option>
+                <option value="housing">Housing / Accommodation</option>
+                <option value="future_plans">Future Plans</option>
+                <option value="success">Success</option>
+                <option value="happiness">Happiness</option>
+                <option value="culture">Culture</option>
+                <option value="tourism">Tourism</option>
+                <option value="public_transport">Public Transport</option>
+                <option value="climate_change">Climate Change</option>
+                <option value="smartphones">Smartphones</option>
+                <option value="online_learning">Online Learning</option>
+                <option value="advertising">Advertising</option>
+                <option value="celebrities">Celebrities</option>
+                <option value="news">News</option>
+                <option value="internet">Internet</option>
+                <option value="city_vs_country">City vs Countryside</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="btn-generate" id="btnStartIeltsMock">
+            <span class="btn-emoji">🎯</span>
+            <span data-i18n="ielts.generateQ">Generate IELTS Questions</span>
+          </button>
+
+          <!-- Practice area -->
+          <div id="ieltsMockArea" style="display:none">
+            <div class="mock-header">
+              <span class="mock-part-badge" id="mockPartBadge">Part 1</span>
+              <span class="mock-progress" id="mockProgress">1 / 7</span>
+            </div>
+
+            <div class="mock-q-card">
+              <p class="mock-q-text" id="mockQText"></p>
+              <div class="mock-bullets" id="mockBullets" style="display:none"></div>
+              <div class="mock-prep-note" id="mockPrepNote" style="display:none" data-i18n="ielts.prepNote">📝 1 minute to prepare</div>
+            </div>
+
+            <div class="timer-block">
+              <div class="timer-label" data-i18n="timer.label">Timer</div>
+              <div class="timer-display" id="mockTimerDisplay">1:00</div>
+              <div class="timer-btns">
+                <button class="btn-timer btn-start" id="mockTimerStart" data-i18n="timer.start">Start</button>
+              </div>
+            </div>
+
+            <div class="record-section">
+              <div class="rec-label" data-i18n="rec.title">🎙 IELTS Speaking Practice</div>
+              <div class="transcript-box" id="mockTranscript"></div>
+              <div class="rec-controls">
+                <button class="btn-record" id="mockRecordBtn">
+                  <span class="rec-dot"></span>
+                  <span data-i18n="rec.start">Start Recording</span>
+                </button>
+                <button class="btn-submit-ielts" id="mockAnalyzeBtn" style="display:none">
+                  <span>📤</span>
+                  <span data-i18n="rec.submit">Submit for IELTS Feedback</span>
+                </button>
+              </div>
+              <div class="ielts-card" id="mockScoreCard" style="display:none"></div>
+            </div>
+
+            <div class="mock-nav">
+              <button class="btn-mock-prev" id="mockPrevBtn" style="display:none" data-i18n="ielts.prev">← Prev</button>
+              <button class="btn-mock-next" id="mockNextBtn" data-i18n="ielts.next">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tip-card">
+          <h3 class="card-title">📋 IELTS Speaking Structure</h3>
+          <div class="ielts-parts-info">
+            <div class="ielts-part-info-item">
+              <span class="part-sm-badge" style="background:#6C5CE7">P1</span>
+              <div><strong>Introduction</strong><p>3 questions · 1 min each · Personal topics</p></div>
+            </div>
+            <div class="ielts-part-info-item">
+              <span class="part-sm-badge" style="background:#FD7E14">P2</span>
+              <div><strong>Long Turn</strong><p>1 cue card · 1 min prep + 2 min speaking</p></div>
+            </div>
+            <div class="ielts-part-info-item">
+              <span class="part-sm-badge" style="background:#20C997">P3</span>
+              <div><strong>Discussion</strong><p>3 questions · 2 min each · Abstract topics</p></div>
             </div>
           </div>
         </div>
@@ -398,6 +520,6 @@
     <div class="spinner"></div>
   </div>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

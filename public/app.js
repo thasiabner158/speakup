@@ -89,7 +89,14 @@ const TRANSLATIONS = {
     'ielts.errors': 'Grammar Corrections',
     'ielts.upgrades': 'Vocabulary Upgrades',
     'ielts.corrected': 'Band 7–9 Rewrite',
-    'ielts.rewritePhrases': 'Useful Phrases from Rewrite',
+    'ielts.rewritePhrases': 'Useful Phrases & Structures',
+    'tab.ielts': 'IELTS Practice',
+    'ielts.generateQ': 'Generate IELTS Questions',
+    'label.ieltsTopic': 'IELTS Topic',
+    'ielts.next': 'Next Question →',
+    'ielts.prev': '← Prev',
+    'ielts.prepNote': '📝 1 minute to prepare — use the timer below',
+    'ielts.done': '🎉 Practice complete!',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -176,7 +183,14 @@ const TRANSLATIONS = {
     'ielts.errors': 'Sửa Lỗi Ngữ Pháp',
     'ielts.upgrades': 'Nâng Cấp Từ Vựng',
     'ielts.corrected': 'Bài Viết Lại Band 7–9',
-    'ielts.rewritePhrases': 'Cụm Từ Hay Từ Bài Viết Lại',
+    'ielts.rewritePhrases': 'Từ / Cụm Từ / Cấu Trúc Hay',
+    'tab.ielts': 'Luyện IELTS',
+    'ielts.generateQ': 'Tạo Câu Hỏi IELTS',
+    'label.ieltsTopic': 'Chủ Đề IELTS',
+    'ielts.next': 'Câu Tiếp Theo →',
+    'ielts.prev': '← Quay Lại',
+    'ielts.prepNote': '📝 Bạn có 1 phút chuẩn bị — dùng timer bên dưới',
+    'ielts.done': '🎉 Hoàn thành luyện tập!',
   }
 };
 
@@ -188,9 +202,12 @@ const state = {
     gen: { sec: 60,  initial: 60,  interval: null, running: false },
     int: { sec: 120, initial: 120, interval: null, running: false },
     voc: { sec: 30,  initial: 30,  interval: null, running: false },
+    mock: { sec: 60, initial: 60,  interval: null, running: false },
   },
-  lastResults: { topic: '', interview: '', vocab: '' },
+  lastResults: { topic: '', interview: '', vocab: '', mock: '' },
 };
+
+const ieltsTest = { questions: [], current: 0 };
 
 // ---- Helpers ----
 const $ = id => document.getElementById(id);
@@ -580,7 +597,7 @@ async function analyzeSpeech(tabId) {
   const transcript = rec.finalText.trim();
   if (!transcript) { showToast(t('rec.noSpeech'), 'err'); return; }
 
-  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab };
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock };
   const context = contextMap[tabId] || '';
   const wordCount = transcript.trim().split(/\s+/).length;
 
@@ -589,8 +606,8 @@ async function analyzeSpeech(tabId) {
     : `Then write a complete Band 7-9 version of the response (minimum 200 words). Keep the same main ideas but upgrade: use academic vocabulary, complex grammar (relative clauses, conditionals, passive voice, perfect tenses), natural discourse markers, and specific examples. Put this in "correctedVersion". Then pick the 5 best phrases/collocations from that rewrite for "rewritePhrases".`;
 
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown), không giải thích thêm:\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC trích câu cụ thể","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Band 7-9 đầy đủ tối thiểu 200 từ>","rewritePhrases":["phrase 1","phrase 2","phrase 3","phrase 4","phrase 5"]}`
-    : `You are a professional IELTS examiner. Do 2 things:\n1. Score and give detailed feedback on the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown), nothing else:\n{"overall":6.5,"FC":{"band":7,"feedback":"specific FC feedback quoting the response","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation notes","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 rewrite minimum 200 words goes here>","rewritePhrases":["phrase 1","phrase 2","phrase 3","phrase 4","phrase 5"]}`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown), không giải thích thêm:\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC trích câu cụ thể","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Band 7-9 đầy đủ tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng thông thường"}]}`
+    : `You are a professional IELTS examiner. Do 2 things:\n1. Score and give detailed feedback on the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown), nothing else:\n{"overall":6.5,"FC":{"band":7,"feedback":"specific FC feedback quoting the response","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation notes","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 rewrite minimum 200 words goes here>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if it is a structure, empty string if just vocabulary"}]}`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -689,7 +706,16 @@ function renderIeltsCard(tabId, s) {
       <div class="ielts-corrected-text">${escHtml(s.correctedVersion)}</div>
       ${s.rewritePhrases?.length ? `
       <div class="ielts-rw-phrases-title">${t('ielts.rewritePhrases')}</div>
-      <div class="ielts-rw-phrases">${s.rewritePhrases.map(p => `<span class="ielts-rw-phrase">${escHtml(p)}</span>`).join('')}</div>` : ''}
+      <div class="ielts-rw-phrases">${s.rewritePhrases.map(p => {
+        const phrase = typeof p === 'string' ? p : (p.phrase || '');
+        const meaning = typeof p === 'string' ? '' : (p.meaning || '');
+        const note = typeof p === 'string' ? '' : (p.note || '');
+        return `<div class="ielts-rw-phrase-item">
+          <div class="ielts-rw-phrase">${escHtml(phrase)}</div>
+          ${meaning ? `<div class="ielts-rw-meaning">🇻🇳 ${escHtml(meaning)}</div>` : ''}
+          ${note ? `<div class="ielts-rw-note">📚 ${escHtml(note)}</div>` : ''}
+        </div>`;
+      }).join('')}</div>` : ''}
     </div>` : ''}
   `;
   card.style.display = 'block';
@@ -720,7 +746,7 @@ async function toggleSampleAnswer(tabId) {
     return;
   }
 
-  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab };
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock };
   const context = contextMap[tabId] || '';
   if (!context) { showToast('Generate a topic first!', 'err'); return; }
 
@@ -779,6 +805,127 @@ async function toggleSampleAnswer(tabId) {
   wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ---- IELTS Mock Practice ----
+async function startIeltsMock() {
+  const topicKey = $('ieltsMockTopic').value;
+  const topicLabel = CAT_EN[topicKey] || topicKey;
+  const btn = $('btnStartIeltsMock');
+
+  const prompt = `Create a realistic IELTS Speaking mock test for the topic: "${topicLabel}".
+Return valid JSON only (no markdown):
+{"part1":["personal question 1","personal question 2","personal question 3"],"part2":{"task":"Describe ...","bullets":["You should say: point 1","point 2","point 3"],"followup":"and explain ..."},"part3":["abstract question 1","abstract question 2","abstract question 3"]}
+Part 1: everyday personal questions. Part 2: cue card with 3 bullet points. Part 3: opinion/discussion questions linked to Part 2.`;
+
+  btn.disabled = true;
+  const result = await callAPI(prompt);
+  btn.disabled = false;
+  if (!result) return;
+
+  try {
+    const data = JSON.parse(result.replace(/```json\s*|\s*```/gi, '').trim());
+    ieltsTest.questions = [];
+    for (const q of (data.part1 || [])) {
+      ieltsTest.questions.push({ part: 1, text: q, speakSec: 60 });
+    }
+    if (data.part2) {
+      ieltsTest.questions.push({ part: 2, text: data.part2.task || '', bullets: data.part2.bullets || [], followup: data.part2.followup || '', speakSec: 120 });
+    }
+    for (const q of (data.part3 || [])) {
+      ieltsTest.questions.push({ part: 3, text: q, speakSec: 120 });
+    }
+    ieltsTest.current = 0;
+    $('ieltsMockArea').style.display = 'block';
+    showMockQuestion();
+    $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch {
+    showToast(t('toast.error') + 'Could not parse questions', 'err');
+  }
+}
+
+function showMockQuestion() {
+  const q = ieltsTest.questions[ieltsTest.current];
+  if (!q) return;
+  const idx = ieltsTest.current;
+  const total = ieltsTest.questions.length;
+
+  const partColors = { 1: '#6C5CE7', 2: '#FD7E14', 3: '#20C997' };
+  const badge = $('mockPartBadge');
+  badge.textContent = `Part ${q.part}`;
+  badge.style.background = partColors[q.part] || '#6C5CE7';
+  $('mockProgress').textContent = `${idx + 1} / ${total}`;
+  $('mockQText').textContent = q.text;
+
+  const bulletsEl = $('mockBullets');
+  if (q.part === 2 && q.bullets?.length) {
+    bulletsEl.innerHTML = `<ul class="mock-bullet-list">${q.bullets.map(b => `<li>${escHtml(b)}</li>`).join('')}</ul>${q.followup ? `<p class="mock-followup">${escHtml(q.followup)}</p>` : ''}`;
+    bulletsEl.style.display = 'block';
+    $('mockPrepNote').style.display = 'block';
+  } else {
+    bulletsEl.style.display = 'none';
+    $('mockPrepNote').style.display = 'none';
+  }
+
+  // Reset timer
+  const tm = state.timers.mock;
+  clearInterval(tm.interval);
+  tm.running = false;
+  tm.sec = q.speakSec;
+  tm.initial = q.speakSec;
+  const disp = $('mockTimerDisplay');
+  disp.textContent = fmtTime(tm.sec);
+  disp.className = 'timer-display';
+  $('mockTimerStart').textContent = t('timer.start');
+  $('mockTimerStart').classList.remove('is-running');
+
+  // Set context for IELTS feedback
+  state.lastResults.mock = q.text;
+
+  // Reset recording
+  if (rec.running && rec.tabId === 'mock') stopRecording();
+  rec.finalText = '';
+  $('mockTranscript').textContent = '';
+  $('mockAnalyzeBtn').style.display = 'none';
+  $('mockScoreCard').style.display = 'none';
+
+  $('mockPrevBtn').style.display = idx > 0 ? 'inline-flex' : 'none';
+  $('mockNextBtn').textContent = idx < total - 1 ? t('ielts.next') : t('ielts.done');
+}
+
+function setupMockTimer() {
+  const tm = state.timers.mock;
+  const disp = $('mockTimerDisplay');
+  const startBtn = $('mockTimerStart');
+
+  startBtn.addEventListener('click', () => {
+    if (tm.running) {
+      clearInterval(tm.interval);
+      tm.running = false;
+      startBtn.textContent = t('timer.start');
+      startBtn.classList.remove('is-running');
+      disp.classList.remove('running', 'danger');
+    } else {
+      if (tm.sec <= 0) { tm.sec = tm.initial; disp.textContent = fmtTime(tm.sec); }
+      tm.running = true;
+      startBtn.textContent = t('timer.pause');
+      startBtn.classList.add('is-running');
+      tm.interval = setInterval(() => {
+        tm.sec--;
+        disp.textContent = fmtTime(tm.sec);
+        disp.classList.toggle('running', tm.sec > 10);
+        disp.classList.toggle('danger', tm.sec <= 10 && tm.sec > 0);
+        if (tm.sec <= 0) {
+          clearInterval(tm.interval);
+          tm.running = false;
+          startBtn.textContent = t('timer.start');
+          startBtn.classList.remove('is-running');
+          disp.className = 'timer-display';
+          showToast(t('toast.timesUp'), 'ok');
+        }
+      }, 1000);
+    }
+  });
+}
+
 // ---- Settings Modal ----
 function openSettings() {
   $('apiKeyInput').value = state.apiKey;
@@ -826,6 +973,23 @@ function init() {
   setupRecording('gen');
   setupRecording('int');
   setupRecording('voc');
+  setupRecording('mock');
+
+  // IELTS Mock
+  setupMockTimer();
+  $('btnStartIeltsMock').addEventListener('click', startIeltsMock);
+  $('mockNextBtn').addEventListener('click', () => {
+    if (ieltsTest.current < ieltsTest.questions.length - 1) {
+      ieltsTest.current++;
+      showMockQuestion();
+      $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      showToast(t('ielts.done'), 'ok');
+    }
+  });
+  $('mockPrevBtn').addEventListener('click', () => {
+    if (ieltsTest.current > 0) { ieltsTest.current--; showMockQuestion(); }
+  });
 
   // Sample answer buttons
   $('genShowSample').addEventListener('click', () => toggleSampleAnswer('gen'));
