@@ -97,6 +97,7 @@ const TRANSLATIONS = {
     'ielts.prev': '← Prev',
     'ielts.prepNote': '📝 1 minute to prepare — use the timer below',
     'ielts.done': '🎉 Practice complete!',
+    'ielts.submitAll': '📊 Submit All & Get Full Feedback',
   },
   vi: {
     'header.settings': 'Cài Đặt',
@@ -191,6 +192,7 @@ const TRANSLATIONS = {
     'ielts.prev': '← Quay Lại',
     'ielts.prepNote': '📝 Bạn có 1 phút chuẩn bị — dùng timer bên dưới',
     'ielts.done': '🎉 Hoàn thành luyện tập!',
+    'ielts.submitAll': '📊 Nộp Bài & Nhận Phản Hồi Toàn Bài',
   }
 };
 
@@ -207,7 +209,7 @@ const state = {
   lastResults: { topic: '', interview: '', vocab: '', mock: '' },
 };
 
-const ieltsTest = { questions: [], current: 0 };
+const ieltsTest = { questions: [], current: 0, answers: {} };
 
 // ---- Helpers ----
 const $ = id => document.getElementById(id);
@@ -834,6 +836,8 @@ Part 1: everyday personal questions. Part 2: cue card with 3 bullet points. Part
       ieltsTest.questions.push({ part: 3, text: q, speakSec: 120 });
     }
     ieltsTest.current = 0;
+    ieltsTest.answers = {};
+    $('mockFinalScoreCard').style.display = 'none';
     $('ieltsMockArea').style.display = 'block';
     showMockQuestion();
     $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -880,15 +884,22 @@ function showMockQuestion() {
   // Set context for IELTS feedback
   state.lastResults.mock = q.text;
 
-  // Reset recording
+  // Restore saved answer or clear
   if (rec.running && rec.tabId === 'mock') stopRecording();
-  rec.finalText = '';
-  $('mockTranscript').textContent = '';
-  $('mockAnalyzeBtn').style.display = 'none';
+  const savedAnswer = ieltsTest.answers[idx];
+  if (savedAnswer) {
+    $('mockTranscript').textContent = savedAnswer;
+    rec.finalText = savedAnswer;
+    $('mockAnalyzeBtn').style.display = 'flex';
+  } else {
+    rec.finalText = '';
+    $('mockTranscript').textContent = '';
+    $('mockAnalyzeBtn').style.display = 'none';
+  }
   $('mockScoreCard').style.display = 'none';
 
   $('mockPrevBtn').style.display = idx > 0 ? 'inline-flex' : 'none';
-  $('mockNextBtn').textContent = idx < total - 1 ? t('ielts.next') : t('ielts.done');
+  $('mockNextBtn').textContent = idx < total - 1 ? t('ielts.next') : t('ielts.submitAll');
 }
 
 function setupMockTimer() {
@@ -924,6 +935,49 @@ function setupMockTimer() {
       }, 1000);
     }
   });
+}
+
+async function analyzeFullMock() {
+  const topicKey = $('ieltsMockTopic').value;
+  const topicLabel = CAT_EN[topicKey] || topicKey;
+
+  // Build Q&A text grouped by part
+  const partLabels = { 1: 'PART 1 — Introduction', 2: 'PART 2 — Long Turn', 3: 'PART 3 — Discussion' };
+  let seenPart = {};
+  let qa = '';
+  ieltsTest.questions.forEach((q, i) => {
+    if (!seenPart[q.part]) { qa += `\n${partLabels[q.part]}:\n`; seenPart[q.part] = true; }
+    const answer = ieltsTest.answers[i] || '(no answer recorded)';
+    qa += `Q: ${q.text}\nAnswer: ${answer}\n\n`;
+  });
+
+  const totalWords = Object.values(ieltsTest.answers).join(' ').trim().split(/\s+/).filter(Boolean).length;
+
+  const rewriteInstruction = state.lang === 'vi'
+    ? `Sau đó viết lại câu trả lời Part 2 thành phiên bản Band 7-9 hoàn chỉnh (tối thiểu 200 từ). Đặt vào "correctedVersion". Chọn 5 cụm từ/cấu trúc hay nhất từ toàn bộ bài thi cho "rewritePhrases".`
+    : `Then write a full Band 7-9 version of the Part 2 long turn (minimum 200 words). Put it in "correctedVersion". Pick the 5 best phrases/structures from across the whole test for "rewritePhrases".`;
+
+  const prompt = state.lang === 'vi'
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Dưới đây là bài thi IELTS Speaking hoàn chỉnh về chủ đề "${topicLabel}" (${totalWords} từ tổng cộng). Đánh giá 4 tiêu chí dựa trên toàn bộ 3 parts. ${rewriteInstruction}\n${qa}\nTrả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC chi tiết, trích dẫn từ cả 3 parts","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA toàn bài","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR toàn bài","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Part 2 Band 7-9 tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng"}]}`
+    : `You are a professional IELTS examiner. Below is a complete IELTS Speaking mock test on the topic "${topicLabel}" (${totalWords} words total). Score all 4 criteria based on all 3 parts. ${rewriteInstruction}\n${qa}\nReturn valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"detailed FC feedback citing examples from all parts","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"full-test grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"full-test vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation notes","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 Part 2 long turn rewrite minimum 200 words>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if structure, empty if vocabulary"}]}`;
+
+  const btn = $('mockNextBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+
+  const result = await callAPI(prompt);
+  btn.disabled = false;
+  btn.textContent = t('ielts.submitAll');
+
+  if (!result) return;
+  try {
+    const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
+    score.wordCount = totalWords;
+    renderIeltsCard('mockFinal', score);
+    $('mockFinalScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch {
+    showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
+  }
 }
 
 // ---- Settings Modal ----
@@ -979,16 +1033,24 @@ function init() {
   setupMockTimer();
   $('btnStartIeltsMock').addEventListener('click', startIeltsMock);
   $('mockNextBtn').addEventListener('click', () => {
+    const txt = $('mockTranscript').textContent.trim();
+    if (txt) ieltsTest.answers[ieltsTest.current] = txt;
     if (ieltsTest.current < ieltsTest.questions.length - 1) {
       ieltsTest.current++;
       showMockQuestion();
       $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-      showToast(t('ielts.done'), 'ok');
+      analyzeFullMock();
     }
   });
   $('mockPrevBtn').addEventListener('click', () => {
-    if (ieltsTest.current > 0) { ieltsTest.current--; showMockQuestion(); }
+    if (ieltsTest.current > 0) {
+      const txt = $('mockTranscript').textContent.trim();
+      if (txt) ieltsTest.answers[ieltsTest.current] = txt;
+      ieltsTest.current--;
+      showMockQuestion();
+      $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   });
 
   // Sample answer buttons
