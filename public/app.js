@@ -871,10 +871,18 @@ async function startIeltsMock() {
   const topicLabel = CAT_EN[topicKey] || topicKey;
   const btn = $('btnStartIeltsMock');
 
-  const prompt = `Create a realistic IELTS Speaking mock test for the topic: "${topicLabel}".
-Return valid JSON only (no markdown):
-{"part1":["personal question 1","personal question 2","personal question 3"],"part2":{"task":"Describe ...","bullets":["You should say: point 1","point 2","point 3"],"followup":"and explain ..."},"part3":["abstract question 1","abstract question 2","abstract question 3"]}
-Part 1: everyday personal questions. Part 2: cue card with 3 bullet points. Part 3: opinion/discussion questions linked to Part 2.`;
+  const prompt = `You are an IELTS Speaking test designer. Create a realistic IELTS Speaking mock test on the topic: "${topicLabel}".
+
+CRITICAL: Every single question in ALL three parts must be directly and clearly about "${topicLabel}". Do NOT drift to unrelated subjects.
+
+PART 1 — 3 short personal questions about the candidate's own experience with "${topicLabel}". Simple, conversational, present/past tense. (e.g. for "Technology": "Do you use a smartphone every day?", "What kind of apps do you use most?", "Did you use technology a lot as a child?")
+
+PART 2 — 1 cue card. Must start with "Describe a [specific thing related to ${topicLabel}]...". Include exactly 3 bullet points starting with "You should say:" and 1 follow-up question at the end.
+
+PART 3 — 3 abstract discussion questions that explore wider societal, cultural, or global aspects of "${topicLabel}". Must be opinion/argument-based and clearly linked to Part 2.
+
+Return valid JSON only (no markdown, no extra text):
+{"part1":["q1","q2","q3"],"part2":{"task":"Describe a ...","bullets":["You should say: ...","...","..."],"followup":"... and explain ..."},"part3":["q1","q2","q3"]}`;
 
   btn.disabled = true;
   const result = await callAPI(prompt);
