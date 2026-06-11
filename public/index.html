@@ -6,7 +6,7 @@
   <title>SpeakUp - Speech Topic Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -287,6 +287,11 @@
               <div class="ielts-card" id="mockScoreCard" style="display:none"></div>
             </div>
 
+            <button class="btn-sample-trigger" id="mockShowSample" data-i18n="sample.btn">✨ Sample Answer</button>
+            <div class="sample-wrap" id="mockSampleWrap" style="display:none">
+              <div class="sample-card" id="mockSampleCard"></div>
+            </div>
+
             <div class="mock-nav">
               <button class="btn-mock-prev" id="mockPrevBtn" style="display:none" data-i18n="ielts.prev">← Prev</button>
               <button class="btn-mock-next" id="mockNextBtn" data-i18n="ielts.next">Next →</button>
@@ -522,6 +527,6 @@
     <div class="spinner"></div>
   </div>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

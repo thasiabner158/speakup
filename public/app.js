@@ -209,7 +209,7 @@ const state = {
   lastResults: { topic: '', interview: '', vocab: '', mock: '' },
 };
 
-const ieltsTest = { questions: [], current: 0, answers: {} };
+const ieltsTest = { questions: [], current: 0, answers: {}, samples: {} };
 
 // ---- Helpers ----
 const $ = id => document.getElementById(id);
@@ -321,22 +321,34 @@ function setupTimer(id, displayId, startId, resetId) {
 // ---- API ----
 async function callAPI(prompt) {
   if (!state.apiKey) { showToast(t('toast.noKey'), 'err'); return null; }
-  setLoading(true);
-  try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, apiKey: state.apiKey })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error');
-    return data.result;
-  } catch (err) {
-    showToast(t('toast.error') + err.message, 'err');
-    return null;
-  } finally {
-    setLoading(false);
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    if (attempt > 0) {
+      showToast('Rate limited — retrying in 5s…', 'ok');
+      await new Promise(r => setTimeout(r, 5000));
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, apiKey: state.apiKey })
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        setLoading(false);
+        if (attempt >= 2) { showToast(t('toast.error') + (data.error || 'Rate limited'), 'err'); return null; }
+        continue;
+      }
+      if (!res.ok) throw new Error(data.error || 'API error');
+      return data.result;
+    } catch (err) {
+      showToast(t('toast.error') + err.message, 'err');
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }
+  return null;
 }
 
 // ---- Prompts ----
@@ -837,6 +849,7 @@ Part 1: everyday personal questions. Part 2: cue card with 3 bullet points. Part
     }
     ieltsTest.current = 0;
     ieltsTest.answers = {};
+    ieltsTest.samples = {};
     $('mockFinalScoreCard').style.display = 'none';
     $('ieltsMockArea').style.display = 'block';
     showMockQuestion();
@@ -898,6 +911,12 @@ function showMockQuestion() {
   }
   $('mockScoreCard').style.display = 'none';
 
+  // Sample answer — restore cached or clear
+  const savedSample = ieltsTest.samples[idx];
+  $('mockSampleCard').innerHTML = savedSample || '';
+  $('mockSampleWrap').style.display = 'none';
+  $('mockShowSample').classList.remove('active');
+
   $('mockPrevBtn').style.display = idx > 0 ? 'inline-flex' : 'none';
   $('mockNextBtn').textContent = idx < total - 1 ? t('ielts.next') : t('ielts.submitAll');
 }
@@ -937,17 +956,101 @@ function setupMockTimer() {
   });
 }
 
+async function showMockSample() {
+  const wrap = $('mockSampleWrap');
+  const btn  = $('mockShowSample');
+  const card = $('mockSampleCard');
+
+  if (wrap.style.display !== 'none') {
+    wrap.style.display = 'none';
+    btn.classList.remove('active');
+    return;
+  }
+  if (card.innerHTML) {
+    wrap.style.display = 'block';
+    btn.classList.add('active');
+    return;
+  }
+
+  const idx = ieltsTest.current;
+  const q   = ieltsTest.questions[idx];
+  if (!q) { showToast('Generate questions first!', 'err'); return; }
+
+  const targetWords = Math.round((q.speakSec / 60) * 130);
+  const partCtx = q.part === 2
+    ? `This is an IELTS Part 2 long turn cue card. Cover all bullet points: ${(q.bullets || []).join('; ')}.`
+    : q.part === 1 ? 'This is an IELTS Part 1 personal question.'
+    : 'This is an IELTS Part 3 discussion question requiring abstract/opinion-based thinking.';
+
+  const prompt = state.lang === 'vi'
+    ? `Viết câu trả lời mẫu IELTS Speaking cho câu hỏi sau.\n${partCtx}\nCâu hỏi: "${q.text}"\nĐộ dài mục tiêu: khoảng ${targetWords} từ tiếng Anh, tự nhiên như đang nói thật, cấu trúc rõ ràng.\nChỉ trả về JSON hợp lệ (không markdown):\n{"answer":"toàn bộ bài nói","keyPhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu từ vựng thông thường"}]}`
+    : `Write an IELTS Speaking model answer for the question below.\n${partCtx}\nQuestion: "${q.text}"\nTarget: approximately ${targetWords} words. Write naturally as if actually speaking — full sentences, discourse markers, examples.\nReturn valid JSON only (no markdown):\n{"answer":"the full answer text","keyPhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar note if it is a structure, empty string if ordinary vocabulary"}]}`;
+
+  btn.textContent = t('sample.loading');
+  btn.disabled = true;
+  const result = await callAPI(prompt);
+  btn.disabled = false;
+  btn.textContent = t('sample.btn');
+  if (!result) return;
+
+  let answerText = '';
+  let phrases = [];
+  try {
+    const data = JSON.parse(result.replace(/```json\s*|\s*```/gi, '').trim());
+    answerText = data.answer || '';
+    phrases = data.keyPhrases || [];
+  } catch {
+    const m = result.match(/"answer"\s*:\s*"([\s\S]*?)(?<!\\)",/);
+    answerText = m ? m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : result.replace(/```[\s\S]*?```/g, '').trim();
+  }
+  if (!answerText) { showToast(t('toast.error') + 'Empty response', 'err'); return; }
+
+  const actualWords = answerText.trim().split(/\s+/).filter(Boolean).length;
+  const phrasesHtml = phrases.map(p => {
+    const ph = typeof p === 'string' ? p : (p.phrase || '');
+    const mn = typeof p === 'string' ? '' : (p.meaning || '');
+    const nt = typeof p === 'string' ? '' : (p.note || '');
+    return `<div class="ielts-rw-phrase-item">
+      <div class="ielts-rw-phrase">${escHtml(ph)}</div>
+      ${mn ? `<div class="ielts-rw-meaning">🇻🇳 ${escHtml(mn)}</div>` : ''}
+      ${nt ? `<div class="ielts-rw-note">📚 ${escHtml(nt)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="sample-header">
+      <span class="sample-title">✨ ${t('sample.title')}</span>
+      <span class="sample-fw-badge">Part ${q.part}</span>
+    </div>
+    <div class="sample-text">${escHtml(answerText)}</div>
+    ${phrasesHtml ? `<div style="padding:10px 14px 14px">
+      <div style="font-size:.75rem;font-weight:600;color:#92400E;margin-bottom:6px">${t('ielts.rewritePhrases')}</div>
+      <div class="ielts-rw-phrases">${phrasesHtml}</div>
+    </div>` : ''}
+    <div class="sample-footer"><span class="sample-wc">📝 ${actualWords} words</span></div>
+  `;
+  ieltsTest.samples[idx] = card.innerHTML;
+  wrap.style.display = 'block';
+  btn.classList.add('active');
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 async function analyzeFullMock() {
   const topicKey = $('ieltsMockTopic').value;
   const topicLabel = CAT_EN[topicKey] || topicKey;
 
   // Build Q&A text grouped by part
   const partLabels = { 1: 'PART 1 — Introduction', 2: 'PART 2 — Long Turn', 3: 'PART 3 — Discussion' };
+  const truncate = (txt, maxWords) => {
+    const words = txt.trim().split(/\s+/);
+    return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : txt;
+  };
   let seenPart = {};
   let qa = '';
   ieltsTest.questions.forEach((q, i) => {
     if (!seenPart[q.part]) { qa += `\n${partLabels[q.part]}:\n`; seenPart[q.part] = true; }
-    const answer = ieltsTest.answers[i] || '(no answer recorded)';
+    const raw = ieltsTest.answers[i] || '(no answer recorded)';
+    const answer = truncate(raw, 120);
     qa += `Q: ${q.text}\nAnswer: ${answer}\n\n`;
   });
 
@@ -1032,6 +1135,7 @@ function init() {
   // IELTS Mock
   setupMockTimer();
   $('btnStartIeltsMock').addEventListener('click', startIeltsMock);
+  $('mockShowSample').addEventListener('click', showMockSample);
   $('mockNextBtn').addEventListener('click', () => {
     const txt = $('mockTranscript').textContent.trim();
     if (txt) ieltsTest.answers[ieltsTest.current] = txt;
