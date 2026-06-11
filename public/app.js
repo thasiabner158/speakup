@@ -619,9 +619,13 @@ async function analyzeSpeech(tabId) {
     ? `Sau đó viết lại toàn bộ bài nói thành phiên bản Band 7-9 hoàn chỉnh (tối thiểu 200 từ tiếng Anh). Giữ nguyên ý chính nhưng nâng cấp: dùng từ vựng học thuật, cấu trúc ngữ pháp phức tạp (relative clauses, conditionals, passive voice), discourse markers tự nhiên, và ví dụ cụ thể. Đặt phiên bản này vào "correctedVersion". Sau đó chọn 5 cụm từ/collocation hay nhất từ bài viết lại đó cho "rewritePhrases".`
     : `Then write a complete Band 7-9 version of the response (minimum 200 words). Keep the same main ideas but upgrade: use academic vocabulary, complex grammar (relative clauses, conditionals, passive voice, perfect tenses), natural discourse markers, and specific examples. Put this in "correctedVersion". Then pick the 5 best phrases/collocations from that rewrite for "rewritePhrases".`;
 
+  const calibration = state.lang === 'vi'
+    ? `\nQUY TẮC CHẤM ĐIỂM NGHIÊM KHẮC — PHẢI tuân thủ:\n• Band 9: Gần như người bản xứ, hầu như không có lỗi\n• Band 7.5–8: Rất tốt, chỉ lỗi nhỏ thỉnh thoảng\n• Band 7: Tốt nhưng có lỗi đáng chú ý hoặc từ vựng hạn chế\n• Band 6–6.5: Rõ ràng nhưng hạn chế rõ, lỗi thường xuyên\n• Band 5–5.5: Cơ bản, nhiều lỗi ảnh hưởng đến hiểu\n• Band 4–4.5: Rất hạn chế, lỗi nghiêm trọng xuyên suốt\nHầu hết người học đang ở 4.5–6.5. KHÔNG cho Band 8+ trừ khi thực sự xuất sắc. Hãy chấm THỰC TẾ.\nVới P: đếm filler words (um, uh, you know, like, kind of, sort of). Trên 5 fillers → giảm điểm FC và P. Ghi cụ thể fillers vào feedback. Nhận xét intonation, nhịp điệu, ngừng nghỉ bất tự nhiên.\nVới FC: nếu có nhiều lần lặp từ/cụm, ngắt giữa câu, dài dòng lan man → giảm điểm.`
+    : `\nSTRICT SCORING RULES — MUST follow:\n• Band 9: Near-native, virtually no errors\n• Band 7.5–8: Very strong, only rare minor slips\n• Band 7: Good but noticeable errors or limited range\n• Band 6–6.5: Communicates clearly but clear weaknesses\n• Band 5–5.5: Basic; frequent errors affect understanding\n• Band 4–4.5: Very limited; serious errors throughout\nMost learners score 4.5–6.5. DO NOT award Band 8+ unless truly exceptional. Be REALISTIC.\nFor P: count filler words (um, uh, you know, like, kind of, sort of). 5+ fillers → lower FC and P bands. Name specific fillers in feedback. Comment on intonation, rhythm, and unnatural pauses.\nFor FC: excessive repetition, mid-sentence breaks, or rambling → lower band.`;
+
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown), không giải thích thêm:\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC trích câu cụ thể","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Band 7-9 đầy đủ tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng thông thường"}]}`
-    : `You are a professional IELTS examiner. Do 2 things:\n1. Score and give detailed feedback on the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown), nothing else:\n{"overall":6.5,"FC":{"band":7,"feedback":"specific FC feedback quoting the response","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation notes","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 rewrite minimum 200 words goes here>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if it is a structure, empty string if just vocabulary"}]}`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown), không giải thích thêm:\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC trích câu cụ thể + filler words + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét phát âm + intonation + filler words cụ thể","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Band 7-9 đầy đủ tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng thông thường"}]}`
+    : `You are a professional IELTS examiner. Do 2 things:\n1. Score and give detailed feedback on the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown), nothing else:\n{"overall":6.5,"FC":{"band":7,"feedback":"FC feedback quoting response + filler words + fluency/rhythm","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + specific filler words found","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 rewrite minimum 200 words goes here>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if it is a structure, empty string if just vocabulary"}]}`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -633,6 +637,7 @@ async function analyzeSpeech(tabId) {
     const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
     score.wordCount = wordCount;
     renderIeltsCard(tabId, score);
+    updateStreak();
   } catch {
     showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
   }
@@ -976,7 +981,8 @@ async function showMockSample() {
   const q   = ieltsTest.questions[idx];
   if (!q) { showToast('Generate questions first!', 'err'); return; }
 
-  const targetWords = Math.round((q.speakSec / 60) * 130);
+  // Real IELTS market standards: P1 ~40w, P2 ~200w, P3 ~70w
+  const targetWords = q.part === 1 ? 40 : q.part === 2 ? 200 : 70;
   const partCtx = q.part === 2
     ? `This is an IELTS Part 2 long turn cue card. Cover all bullet points: ${(q.bullets || []).join('; ')}.`
     : q.part === 1 ? 'This is an IELTS Part 1 personal question.'
@@ -1056,13 +1062,13 @@ async function analyzeFullMock() {
 
   const totalWords = Object.values(ieltsTest.answers).join(' ').trim().split(/\s+/).filter(Boolean).length;
 
-  const rewriteInstruction = state.lang === 'vi'
-    ? `Sau đó viết lại câu trả lời Part 2 thành phiên bản Band 7-9 hoàn chỉnh (tối thiểu 200 từ). Đặt vào "correctedVersion". Chọn 5 cụm từ/cấu trúc hay nhất từ toàn bộ bài thi cho "rewritePhrases".`
-    : `Then write a full Band 7-9 version of the Part 2 long turn (minimum 200 words). Put it in "correctedVersion". Pick the 5 best phrases/structures from across the whole test for "rewritePhrases".`;
+  const fullCalibration = state.lang === 'vi'
+    ? `CHẤM ĐIỂM NGHIÊM KHẮC: Band 9=bản xứ; Band 7=tốt nhưng có lỗi rõ; Band 6=giao tiếp được nhưng hạn chế; Band 5=cơ bản, nhiều lỗi; Band 4=rất yếu. Hầu hết người học nằm ở 4.5–6.5. KHÔNG cho 8+ trừ khi xuất sắc thật sự. Đếm filler words, nhận xét intonation và nhịp điệu.`
+    : `STRICT SCORING: Band 9=near-native; Band 7=good but noticeable errors; Band 6=communicates but clear weaknesses; Band 5=basic, frequent errors; Band 4=very limited. Most learners score 4.5–6.5. DO NOT award 8+ unless truly exceptional. Count filler words, note intonation and rhythm issues.`;
 
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Dưới đây là bài thi IELTS Speaking hoàn chỉnh về chủ đề "${topicLabel}" (${totalWords} từ tổng cộng). Đánh giá 4 tiêu chí dựa trên toàn bộ 3 parts. ${rewriteInstruction}\n${qa}\nTrả về JSON hợp lệ (không markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC chi tiết, trích dẫn từ cả 3 parts","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA toàn bài","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR toàn bài","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét P","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Part 2 Band 7-9 tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng"}]}`
-    : `You are a professional IELTS examiner. Below is a complete IELTS Speaking mock test on the topic "${topicLabel}" (${totalWords} words total). Score all 4 criteria based on all 3 parts. ${rewriteInstruction}\n${qa}\nReturn valid JSON only (no markdown):\n{"overall":6.5,"FC":{"band":7,"feedback":"detailed FC feedback citing examples from all parts","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"full-test grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"full-test vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation notes","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 Part 2 long turn rewrite minimum 200 words>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if structure, empty if vocabulary"}]}`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Dưới đây là bài thi IELTS Speaking hoàn chỉnh về chủ đề "${topicLabel}" (${totalWords} từ). ${fullCalibration}\nĐánh giá 4 tiêu chí dựa trên toàn bộ 3 parts. Chọn 5 cụm từ/cấu trúc hay nhất thí sinh đã dùng hoặc nên dùng cho "rewritePhrases".\n${qa}\nTrả về JSON hợp lệ (không markdown, không correctedVersion):\n{"overall":6.5,"FC":{"band":6,"feedback":"nhận xét FC toàn bài trích dẫn cả 3 parts + fillers + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"ngữ pháp toàn bài","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"từ vựng toàn bài","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"phát âm + intonation + fillers cụ thể","tips":["gợi ý"]},"overallTips":["mục tiêu cải thiện 1","mục tiêu cải thiện 2","mục tiêu cải thiện 3"],"rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc"}]}`
+    : `You are a professional IELTS examiner. Below is a complete IELTS Speaking mock test on the topic "${topicLabel}" (${totalWords} words). ${fullCalibration}\nScore all 4 criteria across all 3 parts. Pick 5 useful phrases/structures the candidate used or should use for "rewritePhrases".\n${qa}\nReturn valid JSON only (no markdown, no correctedVersion field):\n{"overall":6.5,"FC":{"band":6,"feedback":"FC feedback citing all 3 parts + fillers + fluency/rhythm","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"full-test grammar","errors":[{"original":"wrong","corrected":"fixed","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"full-test vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + specific fillers found","tips":["tip"]},"overallTips":["improvement goal 1","improvement goal 2","improvement goal 3"],"rewritePhrases":[{"phrase":"useful phrase","meaning":"Vietnamese meaning","note":"grammar note if structure, empty if vocabulary"}]}`;
 
   const btn = $('mockNextBtn');
   btn.disabled = true;
@@ -1077,6 +1083,7 @@ async function analyzeFullMock() {
     const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
     score.wordCount = totalWords;
     renderIeltsCard('mockFinal', score);
+    updateStreak();
     $('mockFinalScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch {
     showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
@@ -1113,9 +1120,46 @@ function toggleLang() {
   });
 }
 
+// ---- Daily Streak ----
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const last  = localStorage.getItem('speakup_streak_last') || '';
+  let count   = parseInt(localStorage.getItem('speakup_streak_count') || '0');
+  if (last === today) { renderStreak(count); return; }
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  count = last === yesterday ? count + 1 : 1;
+  localStorage.setItem('speakup_streak_last', today);
+  localStorage.setItem('speakup_streak_count', count);
+  renderStreak(count);
+}
+
+function renderStreak(count) {
+  const el = $('streakBadge');
+  if (!el) return;
+  if (count > 0) {
+    el.textContent = `🔥 ${count}`;
+    el.title = count === 1 ? 'Day 1 — keep going!' : `${count} day streak!`;
+    el.style.display = 'inline-flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function loadStreak() {
+  const last  = localStorage.getItem('speakup_streak_last') || '';
+  let count   = parseInt(localStorage.getItem('speakup_streak_count') || '0');
+  if (count > 0) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    if (last !== today && last !== yesterday) count = 0;
+  }
+  renderStreak(count);
+}
+
 // ---- Init ----
 function init() {
   applyI18n();
+  loadStreak();
 
   // Tabs
   document.querySelectorAll('.tab').forEach(tab =>
