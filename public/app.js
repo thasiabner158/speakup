@@ -633,14 +633,55 @@ async function analyzeSpeech(tabId) {
   btn.disabled = false;
   if (!result) return;
 
-  try {
-    const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
-    score.wordCount = wordCount;
-    renderIeltsCard(tabId, score);
-    updateStreak();
-  } catch {
-    showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
+  const score = safeParseIelts(result);
+  if (!score) { showToast(t('toast.error') + 'Could not parse IELTS score', 'err'); return; }
+  score.wordCount = wordCount;
+  renderIeltsCard(tabId, score);
+  updateStreak();
+}
+
+function safeParseIelts(raw) {
+  const clean = raw.replace(/```json\s*|\s*```/gi, '').trim();
+
+  // Try 1: direct parse
+  try { return JSON.parse(clean); } catch {}
+
+  // Try 2: extract correctedVersion manually (often breaks JSON due to unescaped quotes)
+  function extractLongField(str, key) {
+    const marker = `"${key}":`;
+    const ki = str.indexOf(marker);
+    if (ki < 0) return { value: '', rest: str };
+    const qs = str.indexOf('"', ki + marker.length) + 1;
+    let i = qs, value = '';
+    while (i < str.length) {
+      if (str[i] === '\\') { value += str[i] + (str[i + 1] || ''); i += 2; continue; }
+      if (str[i] === '"') break;
+      value += str[i++];
+    }
+    const rest = str.slice(0, ki) + `"${key}":"__PLACEHOLDER__"` + str.slice(i + 1);
+    return { value, rest };
   }
+
+  const { value: correctedVersion, rest: s1 } = extractLongField(clean, 'correctedVersion');
+  try {
+    const obj = JSON.parse(s1.replace('"__PLACEHOLDER__"', '""'));
+    if (correctedVersion) obj.correctedVersion = correctedVersion.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    return obj;
+  } catch {}
+
+  // Try 3: bracket-match outermost { }
+  const start = clean.indexOf('{');
+  if (start >= 0) {
+    let depth = 0, end = -1;
+    for (let i = start; i < clean.length; i++) {
+      if (clean[i] === '{') depth++;
+      else if (clean[i] === '}') { if (--depth === 0) { end = i; break; } }
+    }
+    if (end > start) try { return JSON.parse(clean.slice(start, end + 1)); } catch {}
+  }
+
+  console.error('[safeParseIelts] all attempts failed. raw:', clean.slice(0, 300));
+  return null;
 }
 
 function bandColor(b) {
@@ -1079,15 +1120,12 @@ async function analyzeFullMock() {
   btn.textContent = t('ielts.submitAll');
 
   if (!result) return;
-  try {
-    const score = JSON.parse(result.replace(/```json\s*|\s*```/g, '').trim());
-    score.wordCount = totalWords;
-    renderIeltsCard('mockFinal', score);
-    updateStreak();
-    $('mockFinalScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch {
-    showToast(t('toast.error') + 'Could not parse IELTS score', 'err');
-  }
+  const score = safeParseIelts(result);
+  if (!score) { showToast(t('toast.error') + 'Could not parse IELTS score', 'err'); return; }
+  score.wordCount = totalWords;
+  renderIeltsCard('mockFinal', score);
+  updateStreak();
+  $('mockFinalScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---- Settings Modal ----
