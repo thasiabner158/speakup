@@ -623,9 +623,10 @@ async function analyzeSpeech(tabId) {
     ? `\nQUY TẮC CHẤM ĐIỂM NGHIÊM KHẮC — PHẢI tuân thủ:\n• Band 9: Gần như người bản xứ, hầu như không có lỗi\n• Band 7.5–8: Rất tốt, chỉ lỗi nhỏ thỉnh thoảng\n• Band 7: Tốt nhưng có lỗi đáng chú ý hoặc từ vựng hạn chế\n• Band 6–6.5: Rõ ràng nhưng hạn chế rõ, lỗi thường xuyên\n• Band 5–5.5: Cơ bản, nhiều lỗi ảnh hưởng đến hiểu\n• Band 4–4.5: Rất hạn chế, lỗi nghiêm trọng xuyên suốt\nHầu hết người học đang ở 4.5–6.5. KHÔNG cho Band 8+ trừ khi thực sự xuất sắc. Hãy chấm THỰC TẾ.\nVới P: đếm filler words (um, uh, you know, like, kind of, sort of). Trên 5 fillers → giảm điểm FC và P. Ghi cụ thể fillers vào feedback. Nhận xét intonation, nhịp điệu, ngừng nghỉ bất tự nhiên.\nVới FC: nếu có nhiều lần lặp từ/cụm, ngắt giữa câu, dài dòng lan man → giảm điểm.`
     : `\nSTRICT SCORING RULES — MUST follow:\n• Band 9: Near-native, virtually no errors\n• Band 7.5–8: Very strong, only rare minor slips\n• Band 7: Good but noticeable errors or limited range\n• Band 6–6.5: Communicates clearly but clear weaknesses\n• Band 5–5.5: Basic; frequent errors affect understanding\n• Band 4–4.5: Very limited; serious errors throughout\nMost learners score 4.5–6.5. DO NOT award Band 8+ unless truly exceptional. Be REALISTIC.\nFor P: count filler words (um, uh, you know, like, kind of, sort of). 5+ fillers → lower FC and P bands. Name specific fillers in feedback. Comment on intonation, rhythm, and unnatural pauses.\nFor FC: excessive repetition, mid-sentence breaks, or rambling → lower band.`;
 
+  const jsonNote = 'CRITICAL: output raw JSON only — no markdown fences, no explanation. Inside JSON string values use single quotes only, never double-quote characters.';
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\nTrả về JSON hợp lệ (không markdown), không giải thích thêm:\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC trích câu cụ thể + filler words + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"nhận xét phát âm + intonation + filler words cụ thể","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<bài viết lại Band 7-9 đầy đủ tối thiểu 200 từ>","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc, để trống nếu là từ vựng thông thường"}]}`
-    : `You are a professional IELTS examiner. Do 2 things:\n1. Score and give detailed feedback on the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\nReturn valid JSON only (no markdown), nothing else:\n{"overall":6.5,"FC":{"band":7,"feedback":"FC feedback quoting response + filler words + fluency/rhythm","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"grammar assessment","errors":[{"original":"wrong sentence","corrected":"fixed sentence","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary assessment","upgrades":[{"weak":"weak word","better":"stronger word","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + specific filler words found","tips":["tip"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"<full Band 7-9 rewrite minimum 200 words goes here>","rewritePhrases":[{"phrase":"useful phrase or structure","meaning":"Vietnamese meaning","note":"grammar explanation if it is a structure, empty string if just vocabulary"}]}`;
+    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\n${jsonNote}\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC + filler words + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"phát âm + intonation + fillers","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"bài viết lại Band 7-9 tối thiểu 200 từ","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp hoặc để trống"}]}`
+    : `You are a professional IELTS examiner. Do 2 things:\n1. Score the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\n${jsonNote}\n{"overall":6.5,"FC":{"band":7,"feedback":"FC + fillers + fluency","tips":["tip1","tip2"]},"GRA":{"band":6,"feedback":"grammar","errors":[{"original":"wrong","corrected":"fixed","note":"why"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + fillers","tips":["tip"]},"overallTips":["tip1","tip2"],"correctedVersion":"full Band 7-9 rewrite min 200 words","rewritePhrases":[{"phrase":"phrase","meaning":"Vietnamese meaning","note":"grammar note or empty"}]}`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
@@ -640,36 +641,61 @@ async function analyzeSpeech(tabId) {
   updateStreak();
 }
 
+// Walk the raw string char-by-char and escape unescaped " inside JSON string values
+function sanitizeJsonStrings(str) {
+  let out = '', inStr = false, i = 0;
+  while (i < str.length) {
+    const ch = str[i];
+    if (!inStr) {
+      out += ch;
+      if (ch === '"') inStr = true;
+      i++; continue;
+    }
+    // inside a string value
+    if (ch === '\\') { out += ch + (str[i + 1] || ''); i += 2; continue; }
+    if (ch === '\n') { out += '\\n'; i++; continue; }
+    if (ch === '\r') { i++; continue; }
+    if (ch === '\t') { out += '\\t'; i++; continue; }
+    if (ch === '"') {
+      // Is this the closing quote? Look at the next non-whitespace character.
+      let j = i + 1;
+      while (j < str.length && /[ \t\n\r]/.test(str[j])) j++;
+      const next = str[j] ?? '';
+      if (':,}]"'.includes(next) || j >= str.length) {
+        out += ch; inStr = false; // real closing quote
+      } else {
+        out += '\\"'; // internal quote — escape it
+      }
+      i++; continue;
+    }
+    out += ch; i++;
+  }
+  return out;
+}
+
+// Last-resort: pull band numbers directly from raw text
+function extractBandsFallback(str) {
+  const num = (re) => { const m = str.match(re); return m ? parseFloat(m[1]) : 0; };
+  const overall = num(/"overall"\s*:\s*(\d+(?:\.\d+)?)/);
+  if (!overall) return null;
+  const crit = (key) => ({
+    band: num(new RegExp(`"${key}"[\\s\\S]{1,80}?"band"\\s*:\\s*(\\d+(?:\\.\\d+)?)`)),
+    feedback: '', tips: [], errors: [], upgrades: []
+  });
+  return { overall, FC: crit('FC'), GRA: crit('GRA'), LR: crit('LR'), P: crit('P'), overallTips: [] };
+}
+
 function safeParseIelts(raw) {
+  if (!raw) return null;
   const clean = raw.replace(/```json\s*|\s*```/gi, '').trim();
 
-  // Try 1: direct parse
+  // Try 1: direct parse (model output is already valid JSON)
   try { return JSON.parse(clean); } catch {}
 
-  // Try 2: extract correctedVersion manually (often breaks JSON due to unescaped quotes)
-  function extractLongField(str, key) {
-    const marker = `"${key}":`;
-    const ki = str.indexOf(marker);
-    if (ki < 0) return { value: '', rest: str };
-    const qs = str.indexOf('"', ki + marker.length) + 1;
-    let i = qs, value = '';
-    while (i < str.length) {
-      if (str[i] === '\\') { value += str[i] + (str[i + 1] || ''); i += 2; continue; }
-      if (str[i] === '"') break;
-      value += str[i++];
-    }
-    const rest = str.slice(0, ki) + `"${key}":"__PLACEHOLDER__"` + str.slice(i + 1);
-    return { value, rest };
-  }
+  // Try 2: sanitize unescaped quotes/newlines inside strings, then parse
+  try { return JSON.parse(sanitizeJsonStrings(clean)); } catch {}
 
-  const { value: correctedVersion, rest: s1 } = extractLongField(clean, 'correctedVersion');
-  try {
-    const obj = JSON.parse(s1.replace('"__PLACEHOLDER__"', '""'));
-    if (correctedVersion) obj.correctedVersion = correctedVersion.replace(/\\n/g, '\n').replace(/\\"/g, '"');
-    return obj;
-  } catch {}
-
-  // Try 3: bracket-match outermost { }
+  // Try 3: bracket-match outermost { } then sanitize
   const start = clean.indexOf('{');
   if (start >= 0) {
     let depth = 0, end = -1;
@@ -677,10 +703,18 @@ function safeParseIelts(raw) {
       if (clean[i] === '{') depth++;
       else if (clean[i] === '}') { if (--depth === 0) { end = i; break; } }
     }
-    if (end > start) try { return JSON.parse(clean.slice(start, end + 1)); } catch {}
+    if (end > start) {
+      const chunk = clean.slice(start, end + 1);
+      try { return JSON.parse(chunk); } catch {}
+      try { return JSON.parse(sanitizeJsonStrings(chunk)); } catch {}
+    }
   }
 
-  console.error('[safeParseIelts] all attempts failed. raw:', clean.slice(0, 300));
+  // Try 4: just extract band numbers — shows scores even if feedback text is unparseable
+  const fallback = extractBandsFallback(clean);
+  if (fallback) return fallback;
+
+  console.error('[safeParseIelts] all 4 tries failed. raw:\n', clean);
   return null;
 }
 
@@ -1111,9 +1145,10 @@ async function analyzeFullMock() {
   const totalWords = Object.values(ieltsTest.answers).join(' ').trim().split(/\s+/).filter(Boolean).length;
 
   // Minimal schema — no correctedVersion, no rewritePhrases to keep response small
+  const fullJsonNote = 'Output raw JSON only — no markdown, no explanation. Use single quotes inside string values, never double-quote characters.';
   const prompt = state.lang === 'vi'
-    ? `Giám khảo IELTS. Chủ đề: "${topicLabel}". Chấm nghiêm: hầu hết thí sinh 4.5-6.5, KHÔNG cho 8+ trừ khi thực sự xuất sắc. Đếm filler words (um/uh/you know/like), nhận xét intonation.\n${qa}\nJSON (KHÔNG có correctedVersion, KHÔNG có rewritePhrases):\n{"overall":6.0,"FC":{"band":6.0,"feedback":"nhận xét FC toàn bài, nêu fillers và nhịp điệu","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"ngữ pháp","errors":[{"original":"sai","corrected":"đúng","note":"lý do"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"từ vựng","upgrades":[{"weak":"yếu","better":"mạnh","context":"ngữ cảnh"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"phát âm + intonation + liệt kê fillers","tips":["tip"]},"overallTips":["mục tiêu cải thiện 1","mục tiêu cải thiện 2","mục tiêu cải thiện 3"]}`
-    : `IELTS examiner. Topic: "${topicLabel}". Strict scoring: most learners 4.5-6.5, NEVER 8+ unless truly exceptional. Count fillers (um/uh/you know/like), note intonation.\n${qa}\nJSON (NO correctedVersion, NO rewritePhrases):\n{"overall":6.0,"FC":{"band":6.0,"feedback":"FC feedback across all parts, name fillers and fluency issues","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"grammar","errors":[{"original":"wrong","corrected":"fixed","note":"reason"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"pronunciation + intonation + list specific fillers found","tips":["tip"]},"overallTips":["improvement goal 1","improvement goal 2","improvement goal 3"]}`;
+    ? `Giám khảo IELTS. Chủ đề: "${topicLabel}". Chấm nghiêm: hầu hết 4.5-6.5, KHÔNG cho 8+. Dùng dấu nháy đơn trong giá trị chuỗi JSON, không dùng dấu nháy kép. Đếm fillers (um/uh/you know/like), nhận xét intonation.\n${qa}\n${fullJsonNote}\n{"overall":6.0,"FC":{"band":6.0,"feedback":"FC toàn bài + fillers + nhịp điệu","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"ngữ pháp","errors":[{"original":"sai","corrected":"đúng","note":"lý do"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"từ vựng","upgrades":[{"weak":"yếu","better":"mạnh","context":"ngữ cảnh"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"phát âm + intonation + fillers","tips":["tip"]},"overallTips":["mục tiêu 1","mục tiêu 2","mục tiêu 3"]}`
+    : `IELTS examiner. Topic: "${topicLabel}". Strict: most 4.5-6.5, NEVER 8+. Use single quotes inside JSON string values, never double-quote chars. Count fillers (um/uh/you know/like), note intonation.\n${qa}\n${fullJsonNote}\n{"overall":6.0,"FC":{"band":6.0,"feedback":"FC all parts + fillers + fluency","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"grammar","errors":[{"original":"wrong","corrected":"fixed","note":"reason"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"pronunciation + intonation + fillers","tips":["tip"]},"overallTips":["goal 1","goal 2","goal 3"]}`;
 
   const btn = $('mockNextBtn');
   btn.disabled = true;
