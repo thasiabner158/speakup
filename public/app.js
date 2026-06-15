@@ -905,6 +905,7 @@ Return valid JSON only (no markdown, no extra text):
     ieltsTest.answers = {};
     ieltsTest.samples = {};
     $('mockFinalScoreCard').style.display = 'none';
+    $('mockFinalAnswers').style.display = 'none';
     $('ieltsMockArea').style.display = 'block';
     showMockQuestion();
     $('ieltsMockArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1094,30 +1095,25 @@ async function analyzeFullMock() {
   const topicKey = $('ieltsMockTopic').value;
   const topicLabel = CAT_EN[topicKey] || topicKey;
 
-  // Build Q&A text grouped by part
-  const partLabels = { 1: 'PART 1 — Introduction', 2: 'PART 2 — Long Turn', 3: 'PART 3 — Discussion' };
-  const truncate = (txt, maxWords) => {
-    const words = txt.trim().split(/\s+/);
-    return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : txt;
-  };
-  let seenPart = {};
+  const answerCount = Object.keys(ieltsTest.answers).filter(k => ieltsTest.answers[k]?.trim()).length;
+  if (answerCount === 0) {
+    showToast(state.lang === 'vi' ? 'Hãy ghi âm ít nhất 1 câu trả lời!' : 'Please record at least one answer first!', 'err');
+    return;
+  }
+
+  // Compact Q&A: max 60 words/answer to keep prompt short
+  const trunc = (txt, n) => { const w = txt.trim().split(/\s+/); return w.length > n ? w.slice(0, n).join(' ') + '…' : txt; };
   let qa = '';
   ieltsTest.questions.forEach((q, i) => {
-    if (!seenPart[q.part]) { qa += `\n${partLabels[q.part]}:\n`; seenPart[q.part] = true; }
-    const raw = ieltsTest.answers[i] || '(no answer recorded)';
-    const answer = truncate(raw, 120);
-    qa += `Q: ${q.text}\nAnswer: ${answer}\n\n`;
+    const ans = ieltsTest.answers[i] ? trunc(ieltsTest.answers[i], 60) : '(no answer)';
+    qa += `[P${q.part}] Q: ${q.text}\nA: ${ans}\n`;
   });
-
   const totalWords = Object.values(ieltsTest.answers).join(' ').trim().split(/\s+/).filter(Boolean).length;
 
-  const fullCalibration = state.lang === 'vi'
-    ? `CHẤM ĐIỂM NGHIÊM KHẮC: Band 9=bản xứ; Band 7=tốt nhưng có lỗi rõ; Band 6=giao tiếp được nhưng hạn chế; Band 5=cơ bản, nhiều lỗi; Band 4=rất yếu. Hầu hết người học nằm ở 4.5–6.5. KHÔNG cho 8+ trừ khi xuất sắc thật sự. Đếm filler words, nhận xét intonation và nhịp điệu.`
-    : `STRICT SCORING: Band 9=near-native; Band 7=good but noticeable errors; Band 6=communicates but clear weaknesses; Band 5=basic, frequent errors; Band 4=very limited. Most learners score 4.5–6.5. DO NOT award 8+ unless truly exceptional. Count filler words, note intonation and rhythm issues.`;
-
+  // Minimal schema — no correctedVersion, no rewritePhrases to keep response small
   const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Dưới đây là bài thi IELTS Speaking hoàn chỉnh về chủ đề "${topicLabel}" (${totalWords} từ). ${fullCalibration}\nĐánh giá 4 tiêu chí dựa trên toàn bộ 3 parts. Chọn 5 cụm từ/cấu trúc hay nhất thí sinh đã dùng hoặc nên dùng cho "rewritePhrases".\n${qa}\nTrả về JSON hợp lệ (không markdown, không correctedVersion):\n{"overall":6.5,"FC":{"band":6,"feedback":"nhận xét FC toàn bài trích dẫn cả 3 parts + fillers + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"ngữ pháp toàn bài","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"từ vựng toàn bài","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"phát âm + intonation + fillers cụ thể","tips":["gợi ý"]},"overallTips":["mục tiêu cải thiện 1","mục tiêu cải thiện 2","mục tiêu cải thiện 3"],"rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp nếu là cấu trúc"}]}`
-    : `You are a professional IELTS examiner. Below is a complete IELTS Speaking mock test on the topic "${topicLabel}" (${totalWords} words). ${fullCalibration}\nScore all 4 criteria across all 3 parts. Pick 5 useful phrases/structures the candidate used or should use for "rewritePhrases".\n${qa}\nReturn valid JSON only (no markdown, no correctedVersion field):\n{"overall":6.5,"FC":{"band":6,"feedback":"FC feedback citing all 3 parts + fillers + fluency/rhythm","tips":["tip 1","tip 2"]},"GRA":{"band":6,"feedback":"full-test grammar","errors":[{"original":"wrong","corrected":"fixed","note":"explanation"}],"tips":["tip"]},"LR":{"band":6,"feedback":"full-test vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + specific fillers found","tips":["tip"]},"overallTips":["improvement goal 1","improvement goal 2","improvement goal 3"],"rewritePhrases":[{"phrase":"useful phrase","meaning":"Vietnamese meaning","note":"grammar note if structure, empty if vocabulary"}]}`;
+    ? `Giám khảo IELTS. Chủ đề: "${topicLabel}". Chấm nghiêm: hầu hết thí sinh 4.5-6.5, KHÔNG cho 8+ trừ khi thực sự xuất sắc. Đếm filler words (um/uh/you know/like), nhận xét intonation.\n${qa}\nJSON (KHÔNG có correctedVersion, KHÔNG có rewritePhrases):\n{"overall":6.0,"FC":{"band":6.0,"feedback":"nhận xét FC toàn bài, nêu fillers và nhịp điệu","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"ngữ pháp","errors":[{"original":"sai","corrected":"đúng","note":"lý do"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"từ vựng","upgrades":[{"weak":"yếu","better":"mạnh","context":"ngữ cảnh"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"phát âm + intonation + liệt kê fillers","tips":["tip"]},"overallTips":["mục tiêu cải thiện 1","mục tiêu cải thiện 2","mục tiêu cải thiện 3"]}`
+    : `IELTS examiner. Topic: "${topicLabel}". Strict scoring: most learners 4.5-6.5, NEVER 8+ unless truly exceptional. Count fillers (um/uh/you know/like), note intonation.\n${qa}\nJSON (NO correctedVersion, NO rewritePhrases):\n{"overall":6.0,"FC":{"band":6.0,"feedback":"FC feedback across all parts, name fillers and fluency issues","tips":["tip1","tip2"]},"GRA":{"band":6.0,"feedback":"grammar","errors":[{"original":"wrong","corrected":"fixed","note":"reason"}],"tips":["tip"]},"LR":{"band":6.0,"feedback":"vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6.0,"feedback":"pronunciation + intonation + list specific fillers found","tips":["tip"]},"overallTips":["improvement goal 1","improvement goal 2","improvement goal 3"]}`;
 
   const btn = $('mockNextBtn');
   btn.disabled = true;
@@ -1132,8 +1128,31 @@ async function analyzeFullMock() {
   if (!score) { showToast(t('toast.error') + 'Could not parse IELTS score', 'err'); return; }
   score.wordCount = totalWords;
   renderIeltsCard('mockFinal', score);
+  renderFullMockAnswers();
   updateStreak();
   $('mockFinalScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFullMockAnswers() {
+  const el = $('mockFinalAnswers');
+  if (!el) return;
+  const partColors = { 1: '#6C5CE7', 2: '#FD7E14', 3: '#20C997' };
+  const partNames  = { 1: 'Part 1 — Introduction', 2: 'Part 2 — Long Turn', 3: 'Part 3 — Discussion' };
+  let html = `<div class="full-mock-answers-title">📋 ${state.lang === 'vi' ? 'Câu trả lời của bạn' : 'Your Answers'}</div>`;
+  let lastPart = 0;
+  ieltsTest.questions.forEach((q, i) => {
+    if (q.part !== lastPart) {
+      html += `<div class="full-mock-part-header" style="color:${partColors[q.part]}">${partNames[q.part]}</div>`;
+      lastPart = q.part;
+    }
+    const ans = (ieltsTest.answers[i] || '').trim();
+    html += `<div class="full-mock-qa">
+      <div class="full-mock-q">Q${i + 1}: ${escHtml(q.text)}</div>
+      <div class="full-mock-a${ans ? '' : ' full-mock-a-empty'}">${ans ? escHtml(ans) : (state.lang === 'vi' ? 'Không có câu trả lời' : 'No answer recorded')}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+  el.style.display = 'block';
 }
 
 // ---- Settings Modal ----

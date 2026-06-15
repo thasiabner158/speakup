@@ -571,6 +571,15 @@ select:focus, input:focus {
 .ielts-part-info-item strong { font-size: .9rem; }
 .ielts-part-info-item p { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
 
+/* ===== Full Mock Answers ===== */
+.full-mock-answers-title { padding: 14px 18px; font-weight: 700; font-size: .9rem; border-bottom: 1px solid var(--border); }
+.full-mock-part-header { padding: 7px 18px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; background: #F9FAFB; border-bottom: 1px solid var(--border); }
+.full-mock-qa { padding: 12px 18px; border-bottom: 1px solid #F3F4F6; }
+.full-mock-qa:last-child { border-bottom: none; }
+.full-mock-q { font-size: .82rem; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.full-mock-a { font-size: .82rem; color: #374151; line-height: 1.65; }
+.full-mock-a-empty { color: #9CA3AF; font-style: italic; }
+
 /* ===== Responsive ===== */
 @media (max-width: 520px) {
   .controls-row { flex-direction: column; }
