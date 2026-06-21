@@ -120,6 +120,64 @@ body {
 }
 .cal-close-btn:hover { background: var(--bg); }
 
+/* ===== Grammar Tab ===== */
+.grammar-box {
+  background: var(--bg); border-radius: var(--r); padding: 20px;
+  min-height: 100px; margin-bottom: 18px;
+  display: flex; align-items: flex-start;
+}
+.grammar-box .placeholder { margin: auto; color: var(--text-muted); }
+.gram-card { width: 100%; }
+.gram-topic-title {
+  font-weight: 800; font-size: 1.1rem; color: var(--primary); margin-bottom: 14px;
+}
+.gram-section-label {
+  font-weight: 700; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-muted); margin: 14px 0 6px;
+}
+.gram-rule {
+  background: var(--primary-light); border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0; padding: 12px 14px;
+  font-size: .9rem; line-height: 1.65; color: var(--text);
+}
+.gram-when-wrap { display: flex; flex-direction: column; gap: 6px; }
+.gram-skill-box {
+  font-size: .88rem; line-height: 1.55; color: var(--text);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.gram-skill-tag {
+  flex-shrink: 0; font-size: .68rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px; margin-top: 2px;
+}
+.gram-skill-tag.speaking { background: #E8F5E9; color: #2E7D32; }
+.gram-skill-tag.writing  { background: #E3F2FD; color: #1565C0; }
+.gram-mistake-item {
+  margin-bottom: 8px; padding: 10px 12px;
+  background: #FFF5F5; border-radius: 8px; border-left: 3px solid var(--red);
+}
+.gram-wrong { color: var(--red); font-size: .88rem; font-style: italic; }
+.gram-right { color: #2E7D32; font-size: .88rem; margin-top: 4px; font-weight: 600; }
+.gram-note  { color: var(--text-muted); font-size: .78rem; margin-top: 4px; }
+.gram-band-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 8px; padding: 10px 12px;
+  background: var(--card); border-radius: 8px; border: 1px solid var(--border);
+}
+.gram-band-tag {
+  flex-shrink: 0; font-size: .7rem; font-weight: 800;
+  padding: 3px 8px; border-radius: 10px;
+  background: var(--primary-light); color: var(--primary);
+}
+.gram-band-text { font-size: .88rem; font-style: italic; line-height: 1.55; color: var(--text); }
+.gram-exercise {
+  background: #FFFDE7; border-left: 3px solid #F9A825;
+  border-radius: 0 8px 8px 0; padding: 12px 14px;
+  font-size: .9rem; line-height: 1.65; color: var(--text);
+}
+.gram-exercise-label {
+  font-weight: 700; color: #F57F17; font-size: .78rem; margin-bottom: 5px;
+}
+
 .btn-icon {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 12px;

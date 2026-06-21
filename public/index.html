@@ -6,7 +6,7 @@
   <title>SpeakUp - Speech Topic Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 
@@ -44,6 +44,7 @@
         <button class="tab" data-tab="ielts" data-i18n="tab.ielts">IELTS Practice</button>
         <button class="tab" data-tab="interview" data-i18n="tab.interview">Interview Prep</button>
         <button class="tab" data-tab="vocab" data-i18n="tab.vocab">Learn Vocab</button>
+        <button class="tab" data-tab="grammar" data-i18n="tab.grammar">Learn Grammar</button>
       </nav>
 
       <!-- ===== TAB: TOPIC GENERATOR ===== -->
@@ -493,6 +494,76 @@
         </div>
       </section>
 
+      <!-- ===== TAB: LEARN GRAMMAR ===== -->
+      <section class="tab-content" id="tab-grammar">
+        <div class="card">
+          <div class="controls-row">
+            <div class="form-group">
+              <label>Grammar Topic</label>
+              <select id="grammarTopic">
+                <option value="tenses">Tenses (Present Perfect / Past Simple...)</option>
+                <option value="conditionals">Conditionals (Type 1, 2, 3, Mixed)</option>
+                <option value="passive">Passive Voice</option>
+                <option value="relative">Relative Clauses</option>
+                <option value="modals">Modal Verbs (must / should / might...)</option>
+                <option value="comparatives">Comparatives &amp; Superlatives</option>
+                <option value="articles">Articles (a / an / the / zero)</option>
+                <option value="prepositions">Prepositions</option>
+                <option value="discourse">Discourse Markers &amp; Linking Words</option>
+                <option value="reported">Reported Speech</option>
+                <option value="gerunds">Gerunds vs Infinitives</option>
+                <option value="noun_clauses">Complex Sentences &amp; Noun Clauses</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Skill Focus</label>
+              <select id="grammarSkill">
+                <option value="both">Speaking &amp; Writing</option>
+                <option value="speaking">Speaking only</option>
+                <option value="writing">Writing only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grammar-box" id="grammarResult">
+            <p class="placeholder">Press generate to learn a grammar point with examples!</p>
+          </div>
+
+          <button class="btn-generate" id="btnGenerateGrammar">
+            <span class="btn-emoji">📖</span>
+            <span>Learn Grammar</span>
+          </button>
+
+          <!-- Speaking practice with this grammar -->
+          <div class="record-section">
+            <div class="rec-label" data-i18n="rec.title">🎙 IELTS Speaking Practice</div>
+            <div class="transcript-box" id="gramTranscript"></div>
+            <div class="rec-controls">
+              <button class="btn-record" id="gramRecordBtn">
+                <span class="rec-dot"></span>
+                <span data-i18n="rec.start">Start Recording</span>
+              </button>
+              <button class="btn-submit-ielts" id="gramAnalyzeBtn" style="display:none">
+                <span>📤</span>
+                <span data-i18n="rec.submit">Submit for IELTS Feedback</span>
+              </button>
+            </div>
+            <div class="ielts-card" id="gramScoreCard" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="card tip-card">
+          <h3 class="card-title">💡 How to Use This Tab</h3>
+          <ol class="practice-list">
+            <li>Pick a grammar topic and skill focus, then press <strong>Learn Grammar</strong></li>
+            <li>Study the rule, common mistakes, and Band 7–9 examples</li>
+            <li>Try the practice exercise mentally</li>
+            <li>Record yourself speaking using that grammar point naturally</li>
+            <li>Get IELTS feedback to see how well you applied it</li>
+          </ol>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -529,6 +600,6 @@
     <div class="spinner"></div>
   </div>
 
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>

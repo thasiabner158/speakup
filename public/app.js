@@ -90,6 +90,7 @@ const TRANSLATIONS = {
     'ielts.upgrades': 'Vocabulary Upgrades',
     'ielts.corrected': 'Band 7–9 Rewrite',
     'ielts.rewritePhrases': 'Useful Phrases & Structures',
+    'tab.grammar': 'Learn Grammar',
     'tab.ielts': 'IELTS Practice',
     'ielts.generateQ': 'Generate IELTS Questions',
     'label.ieltsTopic': 'IELTS Topic',
@@ -185,6 +186,7 @@ const TRANSLATIONS = {
     'ielts.upgrades': 'Nâng Cấp Từ Vựng',
     'ielts.corrected': 'Bài Viết Lại Band 7–9',
     'ielts.rewritePhrases': 'Từ / Cụm Từ / Cấu Trúc Hay',
+    'tab.grammar': 'Học Ngữ Pháp',
     'tab.ielts': 'Luyện IELTS',
     'ielts.generateQ': 'Tạo Câu Hỏi IELTS',
     'label.ieltsTopic': 'Chủ Đề IELTS',
@@ -206,7 +208,7 @@ const state = {
     voc: { sec: 30,  initial: 30,  interval: null, running: false },
     mock: { sec: 60, initial: 60,  interval: null, running: false },
   },
-  lastResults: { topic: '', interview: '', vocab: '', mock: '' },
+  lastResults: { topic: '', interview: '', vocab: '', mock: '', grammar: '' },
 };
 
 const ieltsTest = { questions: [], current: 0, answers: {}, samples: {} };
@@ -460,6 +462,90 @@ async function generateInterview() {
   resetSamplePanel('int');
 }
 
+// ---- Grammar ----
+const GRAMMAR_TOPICS = {
+  tenses:       'Tenses (Present Perfect vs Past Simple, Present Perfect Continuous)',
+  conditionals: 'Conditionals (Type 0, 1, 2, 3 and Mixed)',
+  passive:      'Passive Voice',
+  relative:     'Relative Clauses (defining and non-defining)',
+  modals:       'Modal Verbs (must/should/might/could/would)',
+  comparatives: 'Comparatives and Superlatives',
+  articles:     'Articles (a / an / the / zero article)',
+  prepositions: 'Prepositions (time, place, direction)',
+  discourse:    'Discourse Markers and Linking Words',
+  reported:     'Reported Speech',
+  gerunds:      'Gerunds vs Infinitives',
+  noun_clauses: 'Complex Sentences and Noun Clauses',
+};
+
+function buildGrammarPrompt(topic, skill) {
+  const topicName = GRAMMAR_TOPICS[topic] || topic;
+  const skillFocus = skill === 'both' ? 'both IELTS Speaking and Writing'
+    : skill === 'speaking' ? 'IELTS Speaking'
+    : 'IELTS Writing Task 1 & 2';
+
+  if (state.lang === 'vi') {
+    return `Bạn là giáo viên ngữ pháp IELTS chuyên nghiệp. Dạy chủ đề ngữ pháp: "${topicName}" với trọng tâm ${skill === 'both' ? 'cả Speaking và Writing IELTS' : skill === 'speaking' ? 'IELTS Speaking' : 'IELTS Writing'}.
+
+Trả về JSON hợp lệ (không markdown, không text ngoài JSON):
+{"topic":"Tên chủ đề ngữ pháp","rule":"Giải thích quy tắc rõ ràng 2-3 câu (tiếng Anh + ghi chú tiếng Việt nếu cần)","whenToUse":{"speaking":"Dùng khi nào trong IELTS Speaking (1-2 câu tiếng Việt)","writing":"Dùng khi nào trong IELTS Writing (1-2 câu tiếng Việt)"},"mistakes":[{"wrong":"Câu/cụm sai thường gặp của người Việt","correct":"Bản đúng","note":"Lý do sai (tiếng Việt)"},{"wrong":"...","correct":"...","note":"..."}],"bandExamples":[{"band":"5-6","example":"Câu ví dụ Band 5-6"},{"band":"7-8","example":"Câu ví dụ Band 7-8, phức tạp hơn"},{"band":"9","example":"Câu ví dụ Band 9, chuẩn bản xứ"}],"exercise":"Bài tập ngắn: điền vào chỗ trống hoặc sửa lỗi (1-2 câu — không đưa đáp án)"}`;
+  }
+
+  return `You are an expert IELTS grammar teacher. Teach the grammar topic: "${topicName}" focused on ${skillFocus}.
+
+Return ONLY valid JSON (no markdown, no extra text):
+{"topic":"Grammar topic name","rule":"Clear rule in 2-3 sentences with structure explanation","whenToUse":{"speaking":"How/when to use in IELTS Speaking (1-2 sentences)","writing":"How/when to use in IELTS Writing (1-2 sentences)"},"mistakes":[{"wrong":"Common wrong example learners make","correct":"Corrected version","note":"Why it is wrong"},{"wrong":"...","correct":"...","note":"..."}],"bandExamples":[{"band":"5-6","example":"A simpler Band 5-6 level sentence"},{"band":"7-8","example":"A more sophisticated Band 7-8 sentence"},{"band":"9","example":"A Band 9 near-native sentence"}],"exercise":"Short fill-in-the-blank or error-correction exercise (1-2 sentences, no answer given)"}`;
+}
+
+function renderGrammarCard(g) {
+  const skill = $('grammarSkill').value;
+  let whenHTML = '';
+  if (g.whenToUse) {
+    if (skill !== 'writing') whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag speaking">Speaking</span> ${escHtml(g.whenToUse.speaking || '')}</div>`;
+    if (skill !== 'speaking') whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag writing">Writing</span> ${escHtml(g.whenToUse.writing || '')}</div>`;
+  }
+  const mistakesHTML = (g.mistakes || []).map(m => `
+    <div class="gram-mistake-item">
+      <div class="gram-wrong">✗ ${escHtml(m.wrong || '')}</div>
+      <div class="gram-right">✓ ${escHtml(m.correct || '')}</div>
+      ${m.note ? `<div class="gram-note">${escHtml(m.note)}</div>` : ''}
+    </div>`).join('');
+  const bandsHTML = (g.bandExamples || []).map(b => `
+    <div class="gram-band-item">
+      <span class="gram-band-tag">Band ${escHtml(b.band || '')}</span>
+      <span class="gram-band-text">"${escHtml(b.example || '')}"</span>
+    </div>`).join('');
+  $('grammarResult').innerHTML = `
+    <div class="gram-card">
+      <div class="gram-topic-title">📖 ${escHtml(g.topic || '')}</div>
+      <div class="gram-section-label">📌 ${state.lang === 'vi' ? 'Quy Tắc' : 'Rule'}</div>
+      <div class="gram-rule">${escHtml(g.rule || '')}</div>
+      ${whenHTML ? `<div class="gram-section-label">💬 ${state.lang === 'vi' ? 'Khi Nào Dùng' : 'When to Use'}</div><div class="gram-when-wrap">${whenHTML}</div>` : ''}
+      ${mistakesHTML ? `<div class="gram-section-label">❌ ${state.lang === 'vi' ? 'Lỗi Thường Gặp' : 'Common Mistakes'}</div>${mistakesHTML}` : ''}
+      ${bandsHTML ? `<div class="gram-section-label">⭐ ${state.lang === 'vi' ? 'Ví Dụ Theo Band' : 'Band Examples'}</div>${bandsHTML}` : ''}
+      ${g.exercise ? `<div class="gram-section-label">✏️ ${state.lang === 'vi' ? 'Bài Tập' : 'Practice Exercise'}</div><div class="gram-exercise"><div class="gram-exercise-label">${state.lang === 'vi' ? 'Thử làm:' : 'Try this:'}</div>${escHtml(g.exercise)}</div>` : ''}
+    </div>`;
+}
+
+async function generateGrammar() {
+  const topic = $('grammarTopic').value;
+  const skill = $('grammarSkill').value;
+  const btn   = $('btnGenerateGrammar');
+  btn.disabled = true;
+  const raw = await callAPI(buildGrammarPrompt(topic, skill));
+  btn.disabled = false;
+  if (!raw) return;
+  try {
+    const g = safeParseIelts(raw);
+    if (!g || !g.topic) throw new Error('bad');
+    const skillLabel = skill === 'speaking' ? 'IELTS Speaking' : skill === 'writing' ? 'IELTS Writing' : 'IELTS Speaking & Writing';
+    state.lastResults.grammar = `Grammar topic: ${g.topic} — practice using this grammar in ${skillLabel}`;
+    renderGrammarCard(g);
+  } catch(e) {
+    $('grammarResult').innerHTML = `<div class="gram-card"><p class="result-text">${escHtml(raw)}</p></div>`;
+  }
+}
+
 async function generateVocab() {
   const diff = $('vocabDifficulty').value;
   const btn  = $('btnGenerateVocab');
@@ -611,7 +697,7 @@ async function analyzeSpeech(tabId) {
   const transcript = rec.finalText.trim();
   if (!transcript) { showToast(t('rec.noSpeech'), 'err'); return; }
 
-  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock };
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock, gram: state.lastResults.grammar };
   const context = contextMap[tabId] || '';
   const wordCount = transcript.trim().split(/\s+/).length;
 
@@ -858,7 +944,7 @@ async function toggleSampleAnswer(tabId) {
     return;
   }
 
-  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock };
+  const contextMap = { gen: state.lastResults.topic, int: state.lastResults.interview, voc: state.lastResults.vocab, mock: state.lastResults.mock, gram: state.lastResults.grammar };
   const context = contextMap[tabId] || '';
   if (!context) { showToast('Generate a topic first!', 'err'); return; }
 
@@ -1387,6 +1473,7 @@ function init() {
   setupRecording('gen');
   setupRecording('int');
   setupRecording('voc');
+  setupRecording('gram');
   setupRecording('mock');
 
   // IELTS Mock
@@ -1423,6 +1510,7 @@ function init() {
   $('btnGenerateTopic').addEventListener('click', generateTopic);
   $('btnGenerateInterview').addEventListener('click', generateInterview);
   $('btnGenerateVocab').addEventListener('click', generateVocab);
+  $('btnGenerateGrammar').addEventListener('click', generateGrammar);
 
   // Copy buttons
   $('copyTopic').addEventListener('click', () => copyText(state.lastResults.topic));
