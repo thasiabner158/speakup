@@ -1239,8 +1239,20 @@ function toggleLang() {
 }
 
 // ---- Daily Streak ----
+function addPracticeDate(dateStr) {
+  let dates = [];
+  try { dates = JSON.parse(localStorage.getItem('speakup_practice_dates') || '[]'); } catch(e){}
+  if (!dates.includes(dateStr)) {
+    dates.push(dateStr);
+    const cutoff = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
+    dates = dates.filter(d => d >= cutoff);
+    localStorage.setItem('speakup_practice_dates', JSON.stringify(dates));
+  }
+}
+
 function updateStreak() {
   const today = new Date().toISOString().slice(0, 10);
+  addPracticeDate(today);
   const last  = localStorage.getItem('speakup_streak_last') || '';
   let count   = parseInt(localStorage.getItem('speakup_streak_count') || '0');
   if (last === today) { renderStreak(count); return; }
@@ -1256,11 +1268,94 @@ function renderStreak(count) {
   if (!el) return;
   if (count > 0) {
     el.textContent = `🔥 ${count}`;
-    el.title = count === 1 ? 'Day 1 — keep going!' : `${count} day streak!`;
+    el.title = `${count} day streak! Click to see calendar`;
     el.style.display = 'inline-flex';
   } else {
     el.style.display = 'none';
   }
+}
+
+// ---- Practice Calendar ----
+let _calMonth = null;
+
+function showCalendar() {
+  const existing = document.getElementById('calModalBackdrop');
+  if (existing) { existing.remove(); return; }
+  _calMonth = new Date();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'cal-modal-backdrop';
+  backdrop.id = 'calModalBackdrop';
+  backdrop.innerHTML = `
+    <div class="cal-modal">
+      <div class="cal-modal-title">📅 ${state.lang === 'vi' ? 'Lịch học của tôi' : 'My Practice Calendar'}</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="calPrevBtn">‹</button>
+        <span class="cal-month-label" id="calMonthLabel"></span>
+        <button class="cal-nav-btn" id="calNextBtn">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+      </div>
+      <div class="cal-days" id="calDaysGrid"></div>
+      <div class="cal-stats-row" id="calStatsRow"></div>
+      <button class="cal-close-btn" id="calCloseBtn">✕ ${state.lang === 'vi' ? 'Đóng' : 'Close'}</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  renderCalendar();
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+  document.getElementById('calCloseBtn').addEventListener('click', () => backdrop.remove());
+  document.getElementById('calPrevBtn').addEventListener('click', () => {
+    _calMonth.setMonth(_calMonth.getMonth() - 1); renderCalendar();
+  });
+  document.getElementById('calNextBtn').addEventListener('click', () => {
+    _calMonth.setMonth(_calMonth.getMonth() + 1); renderCalendar();
+  });
+}
+
+function renderCalendar() {
+  let practicedSet = new Set();
+  try { practicedSet = new Set(JSON.parse(localStorage.getItem('speakup_practice_dates') || '[]')); } catch(e){}
+  const today  = new Date().toISOString().slice(0, 10);
+  const year   = _calMonth.getFullYear();
+  const month  = _calMonth.getMonth();
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = `${MONTHS[month]} ${year}`;
+
+  const firstDow   = new Date(year, month, 1).getDay();
+  const daysInMon  = new Date(year, month + 1, 0).getDate();
+  let practicedThisMonth = 0;
+  let html = '';
+  for (let i = 0; i < firstDow; i++) html += '<span class="cal-cell"></span>';
+  for (let d = 1; d <= daysInMon; d++) {
+    const ds       = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const done     = practicedSet.has(ds);
+    const isToday  = ds === today;
+    const isFuture = ds > today;
+    if (done) practicedThisMonth++;
+    let cls = 'cal-cell';
+    if (done) cls += ' practiced';
+    if (isFuture) cls += ' future';
+    if (isToday)  cls += ' today-ring';
+    html += `<span class="${cls}" title="${ds}">${d}</span>`;
+  }
+  document.getElementById('calDaysGrid').innerHTML = html;
+
+  const streak    = parseInt(localStorage.getItem('speakup_streak_count') || '0');
+  const totalDays = practicedSet.size;
+  const isVi      = state.lang === 'vi';
+  document.getElementById('calStatsRow').innerHTML = `
+    <div class="cal-stat">
+      <span class="cal-stat-val">🔥 ${streak}</span>
+      <span class="cal-stat-lbl">${isVi ? 'Chuỗi ngày' : 'Day streak'}</span>
+    </div>
+    <div class="cal-stat">
+      <span class="cal-stat-val">📅 ${practicedThisMonth}</span>
+      <span class="cal-stat-lbl">${isVi ? 'Tháng này' : 'This month'}</span>
+    </div>
+    <div class="cal-stat">
+      <span class="cal-stat-val">⭐ ${totalDays}</span>
+      <span class="cal-stat-lbl">${isVi ? 'Tổng ngày học' : 'Total days'}</span>
+    </div>`;
 }
 
 function loadStreak() {
@@ -1333,6 +1428,9 @@ function init() {
   $('copyTopic').addEventListener('click', () => copyText(state.lastResults.topic));
   $('copyInterview').addEventListener('click', () => copyText(state.lastResults.interview));
   $('copyVocab').addEventListener('click', () => copyText(state.lastResults.vocab));
+
+  // Streak badge → calendar
+  $('streakBadge').addEventListener('click', showCalendar);
 
   // Language
   $('langBtn').addEventListener('click', toggleLang);
