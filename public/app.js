@@ -615,22 +615,18 @@ async function analyzeSpeech(tabId) {
   const context = contextMap[tabId] || '';
   const wordCount = transcript.trim().split(/\s+/).length;
 
-  const rewriteInstruction = state.lang === 'vi'
-    ? `Sau đó viết lại toàn bộ bài nói thành phiên bản Band 7-9 hoàn chỉnh (tối thiểu 200 từ tiếng Anh). Giữ nguyên ý chính nhưng nâng cấp: dùng từ vựng học thuật, cấu trúc ngữ pháp phức tạp (relative clauses, conditionals, passive voice), discourse markers tự nhiên, và ví dụ cụ thể. Đặt phiên bản này vào "correctedVersion". Sau đó chọn 5 cụm từ/collocation hay nhất từ bài viết lại đó cho "rewritePhrases".`
-    : `Then write a complete Band 7-9 version of the response (minimum 200 words). Keep the same main ideas but upgrade: use academic vocabulary, complex grammar (relative clauses, conditionals, passive voice, perfect tenses), natural discourse markers, and specific examples. Put this in "correctedVersion". Then pick the 5 best phrases/collocations from that rewrite for "rewritePhrases".`;
-
   const calibration = state.lang === 'vi'
-    ? `\nQUY TẮC CHẤM ĐIỂM NGHIÊM KHẮC — PHẢI tuân thủ:\n• Band 9: Gần như người bản xứ, hầu như không có lỗi\n• Band 7.5–8: Rất tốt, chỉ lỗi nhỏ thỉnh thoảng\n• Band 7: Tốt nhưng có lỗi đáng chú ý hoặc từ vựng hạn chế\n• Band 6–6.5: Rõ ràng nhưng hạn chế rõ, lỗi thường xuyên\n• Band 5–5.5: Cơ bản, nhiều lỗi ảnh hưởng đến hiểu\n• Band 4–4.5: Rất hạn chế, lỗi nghiêm trọng xuyên suốt\nHầu hết người học đang ở 4.5–6.5. KHÔNG cho Band 8+ trừ khi thực sự xuất sắc. Hãy chấm THỰC TẾ.\nVới P: đếm filler words (um, uh, you know, like, kind of, sort of). Trên 5 fillers → giảm điểm FC và P. Ghi cụ thể fillers vào feedback. Nhận xét intonation, nhịp điệu, ngừng nghỉ bất tự nhiên.\nVới FC: nếu có nhiều lần lặp từ/cụm, ngắt giữa câu, dài dòng lan man → giảm điểm.`
-    : `\nSTRICT SCORING RULES — MUST follow:\n• Band 9: Near-native, virtually no errors\n• Band 7.5–8: Very strong, only rare minor slips\n• Band 7: Good but noticeable errors or limited range\n• Band 6–6.5: Communicates clearly but clear weaknesses\n• Band 5–5.5: Basic; frequent errors affect understanding\n• Band 4–4.5: Very limited; serious errors throughout\nMost learners score 4.5–6.5. DO NOT award Band 8+ unless truly exceptional. Be REALISTIC.\nFor P: count filler words (um, uh, you know, like, kind of, sort of). 5+ fillers → lower FC and P bands. Name specific fillers in feedback. Comment on intonation, rhythm, and unnatural pauses.\nFor FC: excessive repetition, mid-sentence breaks, or rambling → lower band.`;
+    ? `CHẤM ĐIỂM NGHIÊM KHẮC: Band 9=bản xứ; Band 7=tốt nhưng lỗi rõ; Band 6=giao tiếp được nhưng hạn chế; Band 5=cơ bản, nhiều lỗi; Band 4=rất yếu. Hầu hết 4.5-6.5. KHÔNG cho 8+. Đếm fillers (um/uh/you know/like) → giảm FC và P nếu nhiều. Nhận xét intonation, nhịp điệu.`
+    : `STRICT SCORING: Band 9=near-native; Band 7=good but noticeable errors; Band 6=communicates but clear weaknesses; Band 5=basic frequent errors; Band 4=very limited. Most learners 4.5-6.5. NEVER 8+. Count fillers (um/uh/you know/like) → lower FC and P if heavy. Note intonation and rhythm.`;
 
-  const jsonNote = 'CRITICAL: output raw JSON only — no markdown fences, no explanation. Inside JSON string values use single quotes only, never double-quote characters.';
-  const prompt = state.lang === 'vi'
-    ? `Bạn là giám khảo IELTS chuyên nghiệp. Làm 2 việc:\n1. Phân tích bài nói theo 4 tiêu chí IELTS.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\n\n${jsonNote}\n{"overall":6.5,"FC":{"band":7,"feedback":"nhận xét FC + filler words + nhịp điệu","tips":["gợi ý 1","gợi ý 2"]},"GRA":{"band":6,"feedback":"nhận xét GRA","errors":[{"original":"câu sai","corrected":"câu đúng","note":"giải thích"}],"tips":["gợi ý"]},"LR":{"band":6,"feedback":"nhận xét LR","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["gợi ý"]},"P":{"band":6,"feedback":"phát âm + intonation + fillers","tips":["gợi ý"]},"overallTips":["tip 1","tip 2"],"correctedVersion":"bài viết lại Band 7-9 tối thiểu 200 từ","rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"giải thích ngữ pháp hoặc để trống"}]}`
-    : `You are a professional IELTS examiner. Do 2 things:\n1. Score the 4 IELTS Speaking criteria.\n2. ${rewriteInstruction}\n${calibration}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\n\n${jsonNote}\n{"overall":6.5,"FC":{"band":7,"feedback":"FC + fillers + fluency","tips":["tip1","tip2"]},"GRA":{"band":6,"feedback":"grammar","errors":[{"original":"wrong","corrected":"fixed","note":"why"}],"tips":["tip"]},"LR":{"band":6,"feedback":"vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + fillers","tips":["tip"]},"overallTips":["tip1","tip2"],"correctedVersion":"full Band 7-9 rewrite min 200 words","rewritePhrases":[{"phrase":"phrase","meaning":"Vietnamese meaning","note":"grammar note or empty"}]}`;
+  // CALL 1: Scores + feedback + phrases only (no correctedVersion — kept short for reliability)
+  const prompt1 = state.lang === 'vi'
+    ? `Giám khảo IELTS. ${calibration}\n${context ? `Chủ đề: "${context}"\n` : ''}Bài nói (${wordCount} từ): "${transcript}"\nJSON hợp lệ, không markdown:\n{"overall":6.0,"FC":{"band":6,"feedback":"nhận xét FC cụ thể + fillers + nhịp điệu","tips":["tip1","tip2"]},"GRA":{"band":6,"feedback":"ngữ pháp cụ thể","errors":[{"original":"câu sai","corrected":"câu đúng","note":"lý do"}],"tips":["tip"]},"LR":{"band":6,"feedback":"từ vựng cụ thể","upgrades":[{"weak":"từ yếu","better":"từ mạnh","context":"ngữ cảnh"}],"tips":["tip"]},"P":{"band":6,"feedback":"phát âm + intonation + liệt kê fillers","tips":["tip"]},"overallTips":["cải thiện 1","cải thiện 2"],"rewritePhrases":[{"phrase":"cụm từ hay","meaning":"nghĩa tiếng Việt","note":"ngữ pháp hoặc để trống"}]}`
+    : `IELTS examiner. ${calibration}\n${context ? `Topic: "${context}"\n` : ''}Response (${wordCount} words): "${transcript}"\nValid JSON only, no markdown:\n{"overall":6.0,"FC":{"band":6,"feedback":"specific FC feedback + fillers + rhythm","tips":["tip1","tip2"]},"GRA":{"band":6,"feedback":"specific grammar","errors":[{"original":"wrong","corrected":"fixed","note":"reason"}],"tips":["tip"]},"LR":{"band":6,"feedback":"specific vocabulary","upgrades":[{"weak":"weak","better":"stronger","context":"context"}],"tips":["tip"]},"P":{"band":6,"feedback":"pronunciation + intonation + list fillers found","tips":["tip"]},"overallTips":["goal1","goal2"],"rewritePhrases":[{"phrase":"useful phrase","meaning":"Vietnamese meaning","note":"grammar note or empty"}]}`;
 
   const btn = $(`${tabId}AnalyzeBtn`);
   btn.disabled = true;
-  const result = await callAPI(prompt);
+  const result = await callAPI(prompt1);
   btn.disabled = false;
   if (!result) return;
 
@@ -639,6 +635,27 @@ async function analyzeSpeech(tabId) {
   score.wordCount = wordCount;
   renderIeltsCard(tabId, score);
   updateStreak();
+
+  // CALL 2: Band 7-9 rewrite as plain text (no JSON → never fails to parse)
+  generateAndInsertRewrite(tabId, transcript, context, wordCount);
+}
+
+async function generateAndInsertRewrite(tabId, transcript, context, wordCount) {
+  const targetWords = Math.max(120, Math.round(wordCount * 1.8));
+  const prompt = state.lang === 'vi'
+    ? `Viết lại câu trả lời IELTS Speaking sau ở mức Band 7-9 (khoảng ${targetWords} từ tiếng Anh). Giữ ý chính của người nói, nâng cấp từ vựng học thuật, cấu trúc ngữ pháp phức tạp (relative clauses, conditionals, discourse markers), thêm ví dụ cụ thể.\n${context ? `Chủ đề: "${context}"\n` : ''}Câu trả lời gốc: "${transcript}"\n\nChỉ viết bài viết lại, không JSON, không giải thích.`
+    : `Rewrite this IELTS Speaking response at Band 7-9 level (about ${targetWords} words). Keep the speaker's main ideas. Upgrade vocabulary, use complex grammar (relative clauses, conditionals, passive voice, discourse markers), add specific examples.\n${context ? `Topic: "${context}"\n` : ''}Original: "${transcript}"\n\nOutput only the improved text. No JSON, no explanations.`;
+
+  const rewriteEl = $(`${tabId}RewriteSection`);
+  if (!rewriteEl) return;
+
+  const result = await callAPI(prompt);
+  if (!result) {
+    rewriteEl.innerHTML = `<div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div><div class="ielts-rewrite-err">${state.lang === 'vi' ? 'Không thể tạo bản viết lại.' : 'Could not generate rewrite.'}</div>`;
+    return;
+  }
+  rewriteEl.innerHTML = `<div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div><div class="ielts-corrected-text">${escHtml(result.trim())}</div>`;
+  rewriteEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Walk the raw string char-by-char and escape unescaped " inside JSON string values
@@ -794,11 +811,8 @@ function renderIeltsCard(tabId, s) {
       <div class="ielts-footer-title">📈 ${t('ielts.tips')}</div>
       <ul class="ielts-tips-list">${overallTips}</ul>
     </div>` : ''}
-    ${s.correctedVersion ? `
+    ${s.rewritePhrases?.length ? `
     <div class="ielts-corrected">
-      <div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div>
-      <div class="ielts-corrected-text">${escHtml(s.correctedVersion)}</div>
-      ${s.rewritePhrases?.length ? `
       <div class="ielts-rw-phrases-title">${t('ielts.rewritePhrases')}</div>
       <div class="ielts-rw-phrases">${s.rewritePhrases.map(p => {
         const phrase = typeof p === 'string' ? p : (p.phrase || '');
@@ -809,8 +823,12 @@ function renderIeltsCard(tabId, s) {
           ${meaning ? `<div class="ielts-rw-meaning">🇻🇳 ${escHtml(meaning)}</div>` : ''}
           ${note ? `<div class="ielts-rw-note">📚 ${escHtml(note)}</div>` : ''}
         </div>`;
-      }).join('')}</div>` : ''}
+      }).join('')}</div>
     </div>` : ''}
+    <div class="ielts-corrected ielts-rewrite-loading-wrap" id="${tabId}RewriteSection">
+      <div class="ielts-corrected-title">✏️ ${t('ielts.corrected')}</div>
+      <div class="ielts-rewrite-loading">⏳ ${state.lang === 'vi' ? 'Đang tạo bản viết lại Band 7–9…' : 'Generating Band 7–9 rewrite…'}</div>
+    </div>
   `;
   card.style.display = 'block';
   card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
