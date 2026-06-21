@@ -480,69 +480,100 @@ const GRAMMAR_TOPICS = {
 
 function buildGrammarPrompt(topic, skill) {
   const topicName = GRAMMAR_TOPICS[topic] || topic;
-  const skillFocus = skill === 'both' ? 'both IELTS Speaking and Writing'
-    : skill === 'speaking' ? 'IELTS Speaking'
-    : 'IELTS Writing Task 1 & 2';
 
+  // FLAT JSON only — no nested objects, no arrays → maximally reliable with llama-3.1-8b-instant
   if (state.lang === 'vi') {
-    return `Bạn là giáo viên ngữ pháp IELTS chuyên nghiệp. Dạy chủ đề ngữ pháp: "${topicName}" với trọng tâm ${skill === 'both' ? 'cả Speaking và Writing IELTS' : skill === 'speaking' ? 'IELTS Speaking' : 'IELTS Writing'}.
-
-Trả về JSON hợp lệ (không markdown, không text ngoài JSON):
-{"topic":"Tên chủ đề ngữ pháp","rule":"Giải thích quy tắc rõ ràng 2-3 câu (tiếng Anh + ghi chú tiếng Việt nếu cần)","whenToUse":{"speaking":"Dùng khi nào trong IELTS Speaking (1-2 câu tiếng Việt)","writing":"Dùng khi nào trong IELTS Writing (1-2 câu tiếng Việt)"},"mistakes":[{"wrong":"Câu/cụm sai thường gặp của người Việt","correct":"Bản đúng","note":"Lý do sai (tiếng Việt)"},{"wrong":"...","correct":"...","note":"..."}],"bandExamples":[{"band":"5-6","example":"Câu ví dụ Band 5-6"},{"band":"7-8","example":"Câu ví dụ Band 7-8, phức tạp hơn"},{"band":"9","example":"Câu ví dụ Band 9, chuẩn bản xứ"}],"exercise":"Bài tập ngắn: điền vào chỗ trống hoặc sửa lỗi (1-2 câu — không đưa đáp án)"}`;
+    const sf = skill === 'both' ? 'cả Speaking và Writing IELTS' : skill === 'speaking' ? 'IELTS Speaking' : 'IELTS Writing';
+    return `Giáo viên ngữ pháp IELTS. Dạy: "${topicName}". Trọng tâm: ${sf}.
+Trả về JSON phẳng hợp lệ (không markdown, không array, không nested object, mỗi giá trị là chuỗi ngắn):
+{"topic":"tên chủ đề","rule":"quy tắc 2 câu tiếng Anh","speaking":"dùng trong IELTS Speaking khi nào (1 câu tiếng Việt)","writing":"dùng trong IELTS Writing khi nào (1 câu tiếng Việt)","wrong1":"câu sai 1","right1":"câu đúng 1","note1":"lý do (tiếng Việt)","wrong2":"câu sai 2","right2":"câu đúng 2","note2":"lý do 2 (tiếng Việt)","band56":"ví dụ Band 5-6","band78":"ví dụ Band 7-8","band9":"ví dụ Band 9","exercise":"bài tập điền vào chỗ trống 1 câu (không có đáp án)"}`;
   }
 
-  return `You are an expert IELTS grammar teacher. Teach the grammar topic: "${topicName}" focused on ${skillFocus}.
-
-Return ONLY valid JSON (no markdown, no extra text):
-{"topic":"Grammar topic name","rule":"Clear rule in 2-3 sentences with structure explanation","whenToUse":{"speaking":"How/when to use in IELTS Speaking (1-2 sentences)","writing":"How/when to use in IELTS Writing (1-2 sentences)"},"mistakes":[{"wrong":"Common wrong example learners make","correct":"Corrected version","note":"Why it is wrong"},{"wrong":"...","correct":"...","note":"..."}],"bandExamples":[{"band":"5-6","example":"A simpler Band 5-6 level sentence"},{"band":"7-8","example":"A more sophisticated Band 7-8 sentence"},{"band":"9","example":"A Band 9 near-native sentence"}],"exercise":"Short fill-in-the-blank or error-correction exercise (1-2 sentences, no answer given)"}`;
+  const sf = skill === 'both' ? 'both IELTS Speaking and Writing'
+    : skill === 'speaking' ? 'IELTS Speaking' : 'IELTS Writing';
+  return `IELTS grammar teacher. Topic: "${topicName}". Focus: ${sf}.
+Return ONLY flat valid JSON (no markdown, no arrays, no nested objects — every value is a short string):
+{"topic":"grammar topic name","rule":"2-sentence rule explanation","speaking":"when to use in IELTS Speaking (1 sentence)","writing":"when to use in IELTS Writing (1 sentence)","wrong1":"common wrong sentence 1","right1":"corrected version 1","note1":"why it is wrong","wrong2":"common wrong sentence 2","right2":"corrected version 2","note2":"why it is wrong","band56":"Band 5-6 example sentence","band78":"Band 7-8 example sentence","band9":"Band 9 example sentence","exercise":"one fill-in-the-blank sentence, no answer given"}`;
 }
 
 function renderGrammarCard(g) {
-  const skill = $('grammarSkill').value;
+  const skill  = $('grammarSkill').value;
+  const isVi   = state.lang === 'vi';
+  const lbl    = (en, vi) => isVi ? vi : en;
+
   let whenHTML = '';
-  if (g.whenToUse) {
-    if (skill !== 'writing') whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag speaking">Speaking</span> ${escHtml(g.whenToUse.speaking || '')}</div>`;
-    if (skill !== 'speaking') whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag writing">Writing</span> ${escHtml(g.whenToUse.writing || '')}</div>`;
-  }
-  const mistakesHTML = (g.mistakes || []).map(m => `
+  if (skill !== 'writing' && g.speaking) whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag speaking">Speaking</span> ${escHtml(g.speaking)}</div>`;
+  if (skill !== 'speaking' && g.writing)  whenHTML += `<div class="gram-skill-box"><span class="gram-skill-tag writing">Writing</span> ${escHtml(g.writing)}</div>`;
+
+  const mkMistake = (w, r, n) => w ? `
     <div class="gram-mistake-item">
-      <div class="gram-wrong">✗ ${escHtml(m.wrong || '')}</div>
-      <div class="gram-right">✓ ${escHtml(m.correct || '')}</div>
-      ${m.note ? `<div class="gram-note">${escHtml(m.note)}</div>` : ''}
-    </div>`).join('');
-  const bandsHTML = (g.bandExamples || []).map(b => `
+      <div class="gram-wrong">✗ ${escHtml(w)}</div>
+      <div class="gram-right">✓ ${escHtml(r || '')}</div>
+      ${n ? `<div class="gram-note">${escHtml(n)}</div>` : ''}
+    </div>` : '';
+
+  const mkBand = (tag, ex) => ex ? `
     <div class="gram-band-item">
-      <span class="gram-band-tag">Band ${escHtml(b.band || '')}</span>
-      <span class="gram-band-text">"${escHtml(b.example || '')}"</span>
-    </div>`).join('');
+      <span class="gram-band-tag">${tag}</span>
+      <span class="gram-band-text">"${escHtml(ex)}"</span>
+    </div>` : '';
+
   $('grammarResult').innerHTML = `
     <div class="gram-card">
       <div class="gram-topic-title">📖 ${escHtml(g.topic || '')}</div>
-      <div class="gram-section-label">📌 ${state.lang === 'vi' ? 'Quy Tắc' : 'Rule'}</div>
+      <div class="gram-section-label">📌 ${lbl('Rule', 'Quy Tắc')}</div>
       <div class="gram-rule">${escHtml(g.rule || '')}</div>
-      ${whenHTML ? `<div class="gram-section-label">💬 ${state.lang === 'vi' ? 'Khi Nào Dùng' : 'When to Use'}</div><div class="gram-when-wrap">${whenHTML}</div>` : ''}
-      ${mistakesHTML ? `<div class="gram-section-label">❌ ${state.lang === 'vi' ? 'Lỗi Thường Gặp' : 'Common Mistakes'}</div>${mistakesHTML}` : ''}
-      ${bandsHTML ? `<div class="gram-section-label">⭐ ${state.lang === 'vi' ? 'Ví Dụ Theo Band' : 'Band Examples'}</div>${bandsHTML}` : ''}
-      ${g.exercise ? `<div class="gram-section-label">✏️ ${state.lang === 'vi' ? 'Bài Tập' : 'Practice Exercise'}</div><div class="gram-exercise"><div class="gram-exercise-label">${state.lang === 'vi' ? 'Thử làm:' : 'Try this:'}</div>${escHtml(g.exercise)}</div>` : ''}
+      ${whenHTML ? `<div class="gram-section-label">💬 ${lbl('When to Use', 'Khi Nào Dùng')}</div><div class="gram-when-wrap">${whenHTML}</div>` : ''}
+      <div class="gram-section-label">❌ ${lbl('Common Mistakes', 'Lỗi Thường Gặp')}</div>
+      ${mkMistake(g.wrong1, g.right1, g.note1)}
+      ${mkMistake(g.wrong2, g.right2, g.note2)}
+      <div class="gram-section-label">⭐ ${lbl('Band Examples', 'Ví Dụ Theo Band')}</div>
+      ${mkBand('Band 5–6', g.band56)}
+      ${mkBand('Band 7–8', g.band78)}
+      ${mkBand('Band 9',   g.band9)}
+      ${g.exercise ? `<div class="gram-section-label">✏️ ${lbl('Practice Exercise', 'Bài Tập')}</div><div class="gram-exercise"><div class="gram-exercise-label">${lbl('Try this:', 'Thử làm:')}</div>${escHtml(g.exercise)}</div>` : ''}
     </div>`;
+}
+
+function safeParseGrammar(raw) {
+  if (!raw) return null;
+  const clean = raw.replace(/```json\s*|\s*```/gi, '').trim();
+  try { return JSON.parse(clean); } catch {}
+  try { return JSON.parse(sanitizeJsonStrings(clean)); } catch {}
+  // bracket extraction
+  const s = clean.indexOf('{');
+  if (s >= 0) {
+    let depth = 0, end = -1;
+    for (let i = s; i < clean.length; i++) {
+      if (clean[i] === '{') depth++;
+      else if (clean[i] === '}') { if (--depth === 0) { end = i; break; } }
+    }
+    if (end > s) {
+      const chunk = clean.slice(s, end + 1);
+      try { return JSON.parse(chunk); } catch {}
+      try { return JSON.parse(sanitizeJsonStrings(chunk)); } catch {}
+    }
+  }
+  return null;
 }
 
 async function generateGrammar() {
   const topic = $('grammarTopic').value;
   const skill = $('grammarSkill').value;
   const btn   = $('btnGenerateGrammar');
+  $('grammarResult').innerHTML = '<p class="placeholder" style="margin:auto">⏳ Generating...</p>';
   btn.disabled = true;
   const raw = await callAPI(buildGrammarPrompt(topic, skill));
   btn.disabled = false;
-  if (!raw) return;
-  try {
-    const g = safeParseIelts(raw);
-    if (!g || !g.topic) throw new Error('bad');
+  if (!raw) { $('grammarResult').innerHTML = '<p class="placeholder" style="margin:auto">Error — please try again.</p>'; return; }
+  const g = safeParseGrammar(raw);
+  if (g && g.topic) {
     const skillLabel = skill === 'speaking' ? 'IELTS Speaking' : skill === 'writing' ? 'IELTS Writing' : 'IELTS Speaking & Writing';
-    state.lastResults.grammar = `Grammar topic: ${g.topic} — practice using this grammar in ${skillLabel}`;
+    state.lastResults.grammar = `Grammar: ${g.topic} — use this grammar in ${skillLabel}`;
     renderGrammarCard(g);
-  } catch(e) {
-    $('grammarResult').innerHTML = `<div class="gram-card"><p class="result-text">${escHtml(raw)}</p></div>`;
+  } else {
+    // plain-text fallback: show raw nicely formatted
+    $('grammarResult').innerHTML = `<div class="gram-card"><p class="result-text" style="white-space:pre-wrap">${escHtml(raw)}</p></div>`;
   }
 }
 
